@@ -1,0 +1,15 @@
+[app]
+host = "127.0.0.1"
+port = 23562
+safe_origin = "luetrim.top"
+
+[postgres]
+host = "127.0.0.1"
+port = 63154
+user = "postgres"
+password = ""
+database = "matsuri_db"
+
+[blrec]
+host = "127.0.0.1"
+port = "2233"
