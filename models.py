@@ -75,7 +75,7 @@ class Channels(Model):
 
 class ClipInfo(Model):
     '直播场次列表'
-    id = CharField(max_length=35, unique=True, primary_key=True)
+    clip_id = CharField(max_length=35, unique=True, primary_key=True) # 和自带的id字段撞名字了，需要修改
     name = TextField(default="")
     bilibili_uid = BigIntField()
     title = TextField(default="")

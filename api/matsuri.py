@@ -174,15 +174,18 @@ async def get_viewer_mid(mid:int, page:int):
         # title, cover, danmu_density, EXTRACT(EPOCH FROM end_time)*1000 AS end_time, 
         # total_danmu, total_gift, total_reward, total_superchat, viewers AS views 
         # FROM clip_info WHERE id = $1', [clip_id]
-        clip_info = await ClipInfo.get(id=clip_id).values(
-            'name', 'id', 'bilibili_uid', 'start_time', 'title', 'cover', 'danmu_density', 'end_time', 'total_danmu', 'total_gift', 'total_reward', 'total_superchat', 'viewers'
+        clip_info = await ClipInfo.get(clip_id=clip_id).values(
+            'name', 'clip_id', 'bilibili_uid', 'start_time', 'title', 'cover', 'danmu_density', 'end_time', 'total_danmu', 'total_gift', 'total_reward', 'total_superchat', 'viewers'
             )
         # SELECT name FROM channels WHERE bilibili_uid = $1
         clip_info.update({
+            'id': clip_info['clip_id'],
             'start_time': date_to_mili_timestamp(clip_info['start_time']),
             'end_time': date_to_mili_timestamp(clip_info['end_time']),
             'views': clip_info['viewers'],
         })
+        clip_info.pop('clip_id')
+        clip_info.pop('viewers')
         # SELECT EXTRACT(EPOCH FROM "time")*1000 as time, username, user_id, 
         # superchat_price, gift_name, gift_price, gift_num, "text" FROM comments 
         # WHERE clip_id = $1 AND user_id = $2 ORDER BY "time"

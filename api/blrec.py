@@ -101,7 +101,7 @@ async def update_clip(data):
         'end_time': end_time,
         'cover': cover,
     }
-    last_clip = await ClipInfo.get_or_none(id=clip_id)
+    last_clip = await ClipInfo.get_or_none(clip_id=clip_id)
     if last_clip:
         # 自动合并进之前的分段
         total_danmu = total_danmu + last_clip.total_danmu
@@ -119,7 +119,7 @@ async def update_clip(data):
     else:
         # 新建分段
         clip_info.update({
-            'id': clip_id,
+            'clip_id': clip_id,
             'bilibili_uid': uid,
             'danmu_density': danmu_density,
             'total_danmu': total_danmu,
