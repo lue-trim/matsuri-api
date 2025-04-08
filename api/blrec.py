@@ -1,8 +1,8 @@
 'blrec相关API'
 import json, datetime, functools, uuid, requests
-from ..models import *
-from ..static import config
-from ..parse import get_danmakus_info, get_room_info
+from db.models import *
+from static import config
+from .parse import get_danmakus_info, get_room_info
 
 def __count_danmakus(clip_list:list):
     '计算弹幕总数'

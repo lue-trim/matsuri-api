@@ -2,14 +2,14 @@ import tortoise
 from tortoise import Tortoise
 from static import config
 from urllib.parse import quote
-from models import *
+from .models import *
 
 async def init_db():
     '初始化数据库'
     user = quote(config.postgres['user'])
     passwd = quote(config.postgres['password'])
     db_host = quote(config.postgres['host'])
-    db_port = quote(config.postgres['port'])
+    db_port = config.postgres['port']
     database = quote(config.postgres['database'])
     config_db = {
             "connections": {
@@ -17,7 +17,7 @@ async def init_db():
             },
             "apps": {
                 "matsuri_app": {
-                    "models": ["models"],
+                    "models": ["db.models"],
                     "default_connection": "matsuri_db",
                 }
             },

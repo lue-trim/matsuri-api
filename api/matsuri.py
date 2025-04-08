@@ -1,9 +1,9 @@
 '处理Matsuri API'
 import datetime
 from tortoise.exceptions import DoesNotExist
-from ..models import *
+from db.models import *
 #from ..static import config
-from ..parse import get_room_info, date_to_mili_timestamp
+from .parse import get_room_info, date_to_mili_timestamp
 
 ### Clip
 async def get_clip_id(clip_id):

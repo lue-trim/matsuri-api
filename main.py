@@ -1,10 +1,12 @@
+from typing import Annotated
 from fastapi import FastAPI, Header, Response, HTTPException
-from static import config
-from tortoise import run_async
 import uvicorn
+from tortoise import run_async
+
 import db
-from .api import matsuri, blrec
-from models import *
+from static import config
+from api import matsuri, blrec
+from db.models import *
 
 app = FastAPI()
 
@@ -92,7 +94,7 @@ async def get_mid_date(mid:int, date:str):
 
 # Viewer
 @app.get("/viewer/{mid}")
-async def get_viewer_mid(mid:int, page:int, header:Header):
+async def get_viewer_mid(mid:int, page:int, header:Annotated[str|None,Header()]):
     'MID -> 对应mid发送的弹幕'
     origin = header['origin']
     if not origin or config.app['safe_origin'] not in origin:
@@ -101,6 +103,7 @@ async def get_viewer_mid(mid:int, page:int, header:Header):
     return res_data
 
 if __name__ == "__main__":
-    run_async(config.load())
+    config.load()
     run_async(db.init_db())
     uvicorn.run(app=app, host=config.app['host'], port=config.app['port'])
+    run_async(db.close())

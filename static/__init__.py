@@ -1,6 +1,6 @@
 import toml
 
-class config:
+class Config:
     __app:dict
     __postgres:dict
     __blrec:dict
@@ -27,3 +27,5 @@ class config:
             self.__app = config_file['app']
             self.__blrec = config_file['blrec']
             self.__postgres = config_file['postgres']
+
+config = Config()

@@ -1,5 +1,5 @@
 import datetime, json, os, re, requests
-from models import ClipInfo, Comments
+from db.models import ClipInfo, Comments
 from static import config
 
 def date1_to_time(time_in_blrec:str):
