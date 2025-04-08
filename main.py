@@ -1,5 +1,6 @@
 from typing import Annotated
 from fastapi import FastAPI, Header, Response, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from tortoise import run_async
 
@@ -9,6 +10,13 @@ from api import matsuri, blrec
 from db.models import *
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 ### blrec webhook
@@ -106,4 +114,4 @@ if __name__ == "__main__":
     config.load()
     run_async(db.init_db())
     uvicorn.run(app=app, host=config.app['host'], port=config.app['port'])
-    run_async(db.close())
+    db.close()
