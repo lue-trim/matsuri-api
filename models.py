@@ -1,6 +1,6 @@
 from tortoise.models import Model
 from tortoise.fields import SmallIntField, IntField, BigIntField, FloatField, CharField, TextField, DatetimeField, BooleanField, JSONField
-from urllib.parse import quote, unquote
+# from urllib.parse import quote, unquote
 
 class CommentsBaseModel(Model):
     '弹幕基类'
@@ -15,9 +15,17 @@ class CommentsBaseModel(Model):
     gift_name = TextField(null=True)
     gift_price = FloatField(null=True)
     gift_num = SmallIntField(null=True)
+    is_misc = BooleanField(default=False) # 暂时用来标记进入直播间信息
 
     class Meta:
         ordering = ['-time']
+    
+    @classmethod
+    def filter(cls, no_enter_message=True, *args, **kwargs):
+        if no_enter_message:
+            return super().filter(*args, **kwargs).exclude(is_misc=False)
+        else:
+            return super().filter(*args, **kwargs)
 
 class AllComments(CommentsBaseModel):
     '所有弹幕, 但是好像实际上在API里完全没什么作用, 目前闲置'
@@ -68,6 +76,7 @@ class Channels(Model):
 class ClipInfo(Model):
     '直播场次列表'
     id = CharField(max_length=35, unique=True, primary_key=True)
+    name = TextField(default="")
     bilibili_uid = BigIntField()
     title = TextField(default="")
     start_time = DatetimeField()

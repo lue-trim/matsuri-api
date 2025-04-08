@@ -1,9 +1,8 @@
 'blrec相关API'
 import json, datetime, functools, uuid, requests
-from fastapi import HTTPException
 from ..models import *
 from ..static import config
-from ..parse import get_danmakus_info, date_to_mili_timestamp
+from ..parse import get_danmakus_info, get_room_info
 
 def __count_danmakus(clip_list:list):
     '计算弹幕总数'
@@ -13,25 +12,17 @@ def __get_uuid(room_id:int, start_time:datetime.datetime):
     '通过房间号和开播时间计算uuid'
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{room_id}{start_time}"))
 
-async def get_room_info(room_id):
-    '从blrec获取房间信息'
-    host = config.blrec['host']
-    port = config.blrec['port']
-    url = f"http://{host}:{port}/api/v1/tasks/{room_id}/data"
-    res = requests.get(url)
-    return res.json()
-
 async def update_user(data, is_live, recalculate=False, new_danmakus=0):
     '更新主鳖信息'
     # 获取场次信息
     uid = data['data']['room_info']['uid']
-    clip_count = await ClipInfo.filter(uid=uid).count()
-    last_clip = await ClipInfo.filter(uid=uid).order_by('-start_time').first()
+    clip_count = await ClipInfo.filter(uid=uid).all().count()
+    last_clip = await ClipInfo.filter(uid=uid).all().order_by('-start_time').first()
     if last_clip:
         last_danmu = last_clip.total_danmu
         total_clip = clip_count
         if recalculate:
-            clip_list = await ClipInfo.filter(uid=uid)
+            clip_list = await ClipInfo.filter(uid=uid).all()
             total_danmu = __count_danmakus(clip_list)
         else:
             total_danmu = last_clip.total_danmu + new_danmakus
@@ -74,7 +65,8 @@ async def update_clip(data):
     # 反查直播间信息
     room_id = data['data']['room_id']
     room_info = await get_room_info(room_id)
-    uid = room_info['room_info']['uid']
+    uid = room_info['user_info']['uid']
+    username = room_info['user_info']['name']
     title = room_info['room_info']['title']
     cover = room_info['room_info']['cover']
 
@@ -102,6 +94,7 @@ async def update_clip(data):
 
     # 更新场次信息
     clip_info = {
+        'name': username,
         'bilibili_uid': uid,
         'title': title,
         'start_time': live_start_time,

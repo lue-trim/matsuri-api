@@ -1,5 +1,6 @@
-import datetime, json, os, re
+import datetime, json, os, re, requests
 from models import ClipInfo, Comments
+from static import config
 
 def date1_to_time(time_in_blrec:str):
     '2025-04-02 12:00:24.255628+08:00 -> datetime'
@@ -19,6 +20,14 @@ def timestamp_to_date(timestamp, ms=True):
 def date_to_mili_timestamp(t:datetime.datetime):
     '2025-04-02 12:02:01 -> 1743566521395(毫秒)'
     return int(t.timestamp() * 1000)
+
+async def get_room_info(room_id):
+    '从blrec获取房间信息'
+    host = config.blrec['host']
+    port = config.blrec['port']
+    url = f"http://{host}:{port}/api/v1/tasks/{room_id}/data"
+    res = requests.get(url)
+    return res.json()
 
 def xml_get(patt, s):
     '用于xml字段的正则表达式匹配'
@@ -42,6 +51,24 @@ def jsonl_parse(file_content):
         if cmd == "WATCHED_CHANGE":
             # 已观看人数更新
             summary['viewers'] = js['data']['num']
+        elif cmd == "INTERACT_WORD":
+            # 进入房间
+            if not js['data']['fans_medal']:
+                fans_medal = {'medal_name':None,'medal_level':None,'guard_level':None}
+            else:
+                fans_medal = js['data']['fans_medal']
+            uname = js['data']['uname']
+            info = {
+                "time": timestamp_to_date(js['data']['timestamp'], ms=False),
+                "username": uname,
+                "user_id": js['data']['uid'],
+                "medal_name": fans_medal['medal_name'],
+                "medal_level": fans_medal['medal_level'],
+                "guard_level": fans_medal['guard_level'],
+                "text": f"{uname}进入直播间",
+                "is_misc": True
+            }
+            summary["danmakus"].append(Comments(**info))
         elif cmd == "DANMU_MSG":
             # 普通弹幕
             info = {
