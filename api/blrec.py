@@ -129,4 +129,4 @@ async def update_clip(data):
             'highlights': highlights,
             'viewers': viewers,
         })
-        ClipInfo.create(**clip_info)
+        await ClipInfo.create(**clip_info)

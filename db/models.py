@@ -9,7 +9,7 @@ class CommentsBaseModel(Model):
     user_id = BigIntField()
     medal_name = CharField(max_length=10, null=True)
     medal_level = SmallIntField(null=True)
-    guard_level = SmallIntField(default=0)
+    guard_level = SmallIntField(default=0, null=True)
     text = TextField(null=True)
     superchat_price = FloatField(null=True)
     gift_name = TextField(null=True)
@@ -30,11 +30,11 @@ class CommentsBaseModel(Model):
 class AllComments(CommentsBaseModel):
     '所有弹幕, 但是好像实际上在API里完全没什么作用, 目前闲置'
     liver_uid = BigIntField()
-    clip_id = CharField(max_length=35,null=True)
+    clip_id = CharField(max_length=36,null=True)
 
 class Comments(CommentsBaseModel):
     '正常弹幕'
-    clip_id = CharField(max_length=35)
+    clip_id = CharField(max_length=36)
 
     @classmethod
     async def add(self, **kwargs):
@@ -75,7 +75,7 @@ class Channels(Model):
 
 class ClipInfo(Model):
     '直播场次列表'
-    clip_id = CharField(max_length=35, unique=True, primary_key=True) # 和自带的id字段撞名字了，需要修改
+    clip_id = CharField(max_length=36, unique=True, primary_key=True) # 和自带的id字段撞名字了，需要修改
     name = TextField(default="")
     bilibili_uid = BigIntField()
     title = TextField(default="")

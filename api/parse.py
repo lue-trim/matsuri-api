@@ -51,7 +51,10 @@ def jsonl_parse(file_content):
         "viewers": 0
     }
     for line in file_content:
-        js = json.loads(line)
+        try:
+            js = json.loads(line)
+        except Exception:
+            raise Exception(f"Parse Error on {line}")
         cmd = js['cmd']
         if cmd == "WATCHED_CHANGE":
             # 已观看人数更新
@@ -76,13 +79,20 @@ def jsonl_parse(file_content):
             summary["danmakus"].append(Comments(**info))
         elif cmd == "DANMU_MSG":
             # 普通弹幕
+            medal_guard_info = js['info'][3]
+            if medal_guard_info:
+                medal_name = medal_guard_info[1]
+                medal_level = medal_guard_info[0]
+                guard_level = medal_guard_info[10]
+            else:
+                medal_name =medal_level = guard_level = None
             info = {
                 "time": timestamp_to_date(js['info'][0][4]),
                 "username": js['info'][2][1],
                 "user_id": js['info'][2][0],
-                "medal_name": js['info'][3][1],
-                "medal_level": js['info'][3][0],
-                "guard_level": js['info'][3][10],
+                "medal_name": medal_name,
+                "medal_level": medal_level,
+                "guard_level": guard_level,
                 "text": js['info'][1],
             }
             summary["danmakus"].append(Comments(**info))
@@ -137,7 +147,7 @@ def jsonl_parse(file_content):
             summary['total_gift'] += total_price
             summary['total_reward'] += total_price
     # 最后
-    summary['total_danmakus'] = summary['danmakus'].count()
+    summary['total_danmakus'] = len(summary['danmakus'])
     return summary
 
 def xml_parse(file_content):
@@ -178,7 +188,7 @@ def highlight_parse(plain_danmakus_list:list):
     start_ts = date_to_mili_timestamp(plain_danmakus_list[0]['time'])
     end_ts = date_to_mili_timestamp(plain_danmakus_list[-1]['time'])
     summary_list = [
-        dict([(key, 0) for key in keywords[1:]]).update({'time': ts}) \
+        dict([(key, 0) for key in keywords[1:]] + [('time', ts)]) \
         for ts in range(start_ts, end_ts, 60000)
         ]
 
@@ -209,7 +219,7 @@ def get_danmakus_info(data):
     end_time = date1_to_time(data['date'])
 
     # jsonl
-    with open(jsonl_path, 'r', encoding='uft-8') as f:
+    with open(jsonl_path, 'r', encoding='utf-8') as f:
         file_content = f.readlines()
     summary = jsonl_parse(file_content=file_content)
 

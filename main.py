@@ -2,12 +2,21 @@ from typing import Annotated
 from fastapi import FastAPI, Header, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from pydantic import BaseModel
 from tortoise import run_async
+from uuid import UUID
 
 import db
 from static import config
 from api import matsuri, blrec
 from db.models import *
+
+class BlrecWebhookData(BaseModel):
+    'BLREC Webhook的数据格式'
+    id: UUID
+    date: str
+    type: str
+    data: dict
 
 app = FastAPI()
 app.add_middleware(
@@ -21,17 +30,19 @@ app.add_middleware(
 
 ### blrec webhook
 @app.post("/rec")
-async def rec_handle(data):
+async def rec_handle(data: BlrecWebhookData):
     'webhook处理'
-    event_type = data['data']['type']
+    #data = json.loads(data)
+    data = data.dict()
+    event_type = data['type']
     if event_type == "LiveBeganEvent":
         # 录制开始
         await blrec.start_clip(data)
     elif event_type == "LiveEndedEvent":
         # 录制结束
         await blrec.end_clip(data)
-    elif event_type == "DanmakuFileCompletedEvent":
-        # 弹幕完成
+    elif event_type == "RawDanmakuFileCompletedEvent":
+        # 原始弹幕完成
         await blrec.update_clip(data)
     return {"code": 200, "message": "Mua~"}
 
