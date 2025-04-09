@@ -32,7 +32,12 @@ async def get_room_info(room_id):
 def xml_get(patt, s):
     '用于xml字段的正则表达式匹配'
     pattern = re.compile(f"(?<=\<{patt}\>).*(?=\<\/{patt}\>)")
-    return re.search(pattern, s).group()
+    res = re.search(pattern, s)
+    if res:
+        return res.group()
+    else:
+        print(f"no result for {patt} in {s}")
+        return None
 
 def jsonl_parse(file_content):
     summary = {
@@ -142,7 +147,7 @@ def xml_parse(file_content):
     record_start_time = xml_get("record_start_time", file_content)
     record_start_time = date2_to_time(record_start_time)
     live_start_time = xml_get("live_start_time", file_content)
-    live_start_time = date2_to_time(record_start_time)
+    live_start_time = date2_to_time(live_start_time)
 
     # 直播间号
     room_id = xml_get("room_id", file_content)
@@ -210,8 +215,9 @@ def get_danmakus_info(data):
 
     # xml
     xml_path = f"{os.path.splitext(jsonl_path)[0]}.xml"
+    print(f"Reading {xml_path}")
     with open(xml_path, "r", encoding='utf-8') as f:
-        file_content = f.readlines(20)
+        file_content = f.readlines()
     xml_summary = xml_parse(file_content)
 
     # 计算时间和弹幕频率（条/分钟）

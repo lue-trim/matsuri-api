@@ -20,7 +20,9 @@ def request_api(record_end_time:datetime.datetime, room_id, xml_path):
     # 发送请求
     host = config.app['host']
     port = config.app['port']
-    url = f"http://{host}:{port}/rec"
+    #prefix = "https" if config.app['https'] else "http"
+    prefix = "http"
+    url = f"{prefix}://{host}:{port}/rec"
     requests.post(url, data=data)
 
 def find_danmaku_file(path):
@@ -66,12 +68,12 @@ def main():
     # 读取文件信息
     for xml_path in parse_list:
         with open(xml_path, 'r', encoding='utf-8') as f:
-            xml_info = parse.xml_parse(f.readline(1000))
+            xml_info = parse.xml_parse(f.read(2000))
         room_id = xml_info['room_id']
         # start_time = xml_info['live_start_time']
         end_time = datetime.datetime.fromtimestamp(os.path.getmtime(xml_path))
         title = xml_info['title']
-        print(f"Room ID: {room_id}, End Time: {end_time.strftime(r"%Y-%m-%d %H:%M:%S")}, Title: {title}")
+        print(f"Room ID: {room_id}, End Time: {end_time.strftime(r'%Y-%m-%d %H:%M:%S')}, Title: {title}")
         request_api( record_end_time=end_time, xml_path=xml_path, room_id=room_id)
 
 if __name__ == "__main__":
