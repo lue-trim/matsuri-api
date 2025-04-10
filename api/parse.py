@@ -64,25 +64,25 @@ def jsonl_parse(file_content, clip_id):
         if cmd == "WATCHED_CHANGE":
             # 已观看人数更新
             summary['viewers'] = js['data']['num']
-        elif cmd == "INTERACT_WORD":
-            # 进入房间
-            if not js['data']['fans_medal']:
-                fans_medal = {'medal_name':None,'medal_level':None,'guard_level':None}
-            else:
-                fans_medal = js['data']['fans_medal']
-            uname = js['data']['uname']
-            info = {
-                "clip_id": clip_id,
-                "time": timestamp_to_date(js['data']['timestamp'], ms=False),
-                "username": uname,
-                "user_id": js['data']['uid'],
-                "medal_name": fans_medal['medal_name'],
-                "medal_level": fans_medal['medal_level'],
-                "guard_level": fans_medal['guard_level'],
-                "text": f"{uname}进入直播间",
-                "is_misc": True
-            }
-            summary["danmakus"].append(Comments(**info))
+        # elif cmd == "INTERACT_WORD":
+        #     # 进入房间
+        #     if not js['data']['fans_medal']:
+        #         fans_medal = {'medal_name':None,'medal_level':None,'guard_level':None}
+        #     else:
+        #         fans_medal = js['data']['fans_medal']
+        #     uname = js['data']['uname']
+        #     info = {
+        #         "clip_id": clip_id,
+        #         "time": timestamp_to_date(js['data']['timestamp'], ms=False),
+        #         "username": uname,
+        #         "user_id": js['data']['uid'],
+        #         "medal_name": fans_medal['medal_name'],
+        #         "medal_level": fans_medal['medal_level'],
+        #         "guard_level": fans_medal['guard_level'],
+        #         "text": f"{uname}进入直播间",
+        #         "is_misc": True
+        #     }
+        #     summary["danmakus"].append(Comments(**info))
         elif cmd == "DANMU_MSG":
             # 普通弹幕
             medal_guard_info = js['info'][3]
