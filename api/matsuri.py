@@ -8,7 +8,7 @@ from .parse import get_room_info, date_to_mili_timestamp
 ### Clip
 async def get_clip_id(clip_id):
     '获取场次信息'
-    clip_info = await ClipInfo.get_or_none(id=clip_id)
+    clip_info = await ClipInfo.get_or_none(clip_id=clip_id)
     if not clip_info:
         return None
     # id, bilibili_uid, title, EXTRACT(EPOCH FROM start_time)*1000 AS start_time, 
@@ -16,7 +16,7 @@ async def get_clip_id(clip_id):
     # total_danmu, total_gift, total_superchat, total_reward, highlights, 
     # viewers AS views
     data = {
-        'id': clip_info.id,
+        'id': clip_info.clip_id,
         'bilibili_uid': clip_info.bilibili_uid,
         'title': clip_info.title,
         'start_time': date_to_mili_timestamp(clip_info.start_time),
@@ -109,7 +109,7 @@ async def get_channel_id_clips(mid:int):
     if not clips:
         return None
     data = [{
-        'id': clip.id, 
+        'id': clip.clip_id, 
         'bilibili_uid': clip.bilibili_uid, 
         'title': clip.title,
         'start_time': date_to_mili_timestamp(clip.start_time),
