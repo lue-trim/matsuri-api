@@ -33,7 +33,7 @@ app.add_middleware(
 async def rec_handle(data: BlrecWebhookData):
     'webhook处理'
     #data = json.loads(data)
-    data = data.model_dump()
+    data = data.dict()
     event_type = data['type']
     if event_type == "LiveBeganEvent":
         # 录制开始

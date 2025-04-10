@@ -200,25 +200,29 @@ def highlight_parse(plain_danmakus_list:list):
 
     # 确定如何对时间进行分段
     start_ts = date_to_mili_timestamp(plain_danmakus_list[0]['time'])
-    end_ts = date_to_mili_timestamp(plain_danmakus_list[-1]['time'])
-    summary_list = [
-        dict([(key, 0) for key in keywords[1:]] + [('time', ts)]) \
-        for ts in range(start_ts, end_ts, 60000)
-        ]
+    summary_list = []
 
     # 将弹幕文字内容进行分段
     seg_num = len(summary_list)
-    danmakus_seg_list = [""] * seg_num
-    for danmakus in plain_danmakus_list:
-        ts = date_to_mili_timestamp(danmakus['time'])
-        text:str = danmakus['text']
-        # 确定处理的弹幕位于哪一段
-        segment = (ts - start_ts) // 60
-        if segment >= seg_num:
-            # 防止索引超限
-            segment = -1
-        # 拼接弹幕
-        danmakus_seg_list[segment] += text
+    danmakus_seg_list = []
+    seg_idx = 0
+    while plain_danmakus_list:
+        seg_start_ts = start_ts + 60000*seg_idx
+        end_ts = 60000 + seg_start_ts
+        danmakus_seg = ""
+        current_ts = date_to_mili_timestamp(plain_danmakus_list[0]['time'])
+        while current_ts < end_ts:
+            current_danmaku = plain_danmakus_list.pop(0)
+            danmakus_seg += current_danmaku['text']
+            current_ts = date_to_mili_timestamp(current_danmaku['time'])
+            if not plain_danmakus_list:
+                # 后面没弹幕了就退出
+                break
+
+        # 发现超过了60秒后
+        danmakus_seg_list.append(danmakus_seg)
+        summary_list.append(dict([(key, 0) for key in keywords[1:]] + [('time', ts)]))
+        seg_idx += 1
 
     # 识别关键词个数
     for idx, danmakus_seg in enumerate(danmakus_seg_list):

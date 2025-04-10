@@ -39,7 +39,7 @@ async def get_clip_id_comments(clip_id):
     # EXTRACT(EPOCH FROM "time")*1000 as time, username, user_id, superchat_price, 
     # gift_name, gift_price, gift_num, "text" 
     # FROM all_comments WHERE clip_id = $1 ORDER BY "time"', [id])
-    danmakus = await Comments.filter(clip_id=clip_id, ordering="time").all()
+    danmakus = await Comments.filter(clip_id=clip_id).all().order_by("time")
     if not danmakus:
         return {
             'status': 0, 'data': []

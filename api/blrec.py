@@ -65,11 +65,12 @@ async def update_clip(data):
     room_info = await get_room_info(room_id)
     uid = room_info['user_info']['uid']
     username = room_info['user_info']['name']
-    title = room_info['room_info']['title']
-    cover = room_info['room_info']['cover']
+    # title = room_info['room_info']['title'] # 不要现场获取，从xml读才是正确的
+    cover = room_info['room_info']['cover'] # 但是封面信息是真读不到
 
     # 解析弹幕文件
     danmakus_info = get_danmakus_info(data)
+    title = danmakus_info['title']
     live_start_time = danmakus_info['live_start_time']
     # record_start_time = danmakus_info['record_start_time']
     end_time = danmakus_info['end_time']
