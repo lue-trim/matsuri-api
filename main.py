@@ -33,7 +33,7 @@ app.add_middleware(
 async def rec_handle(data: BlrecWebhookData):
     'webhook处理'
     #data = json.loads(data)
-    data = data.dict()
+    data = data.model_dump()
     event_type = data['type']
     if event_type == "LiveBeganEvent":
         # 录制开始
@@ -91,7 +91,7 @@ async def get_channel_id(mid:int):
 @app.get("/clip/{id}")
 async def get_clip_id(id:str):
     'Clip ID -> 场次信息'
-    res_data = await matsuri.get_id(id)
+    res_data = await matsuri.get_clip_id(id)
     if res_data:
         return res_data
     else:

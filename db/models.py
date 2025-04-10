@@ -65,8 +65,8 @@ class Channels(Model):
     total_clips = IntField()
     total_danmu = IntField()
     face = TextField()
-    hidden = BooleanField(null=True)
-    archive = BooleanField(null=True)
+    hidden = BooleanField(null=True, default=False)
+    archive = BooleanField(null=True, default=False)
     last_live = DatetimeField(null=True)
 
     class Meta:

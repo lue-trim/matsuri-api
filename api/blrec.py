@@ -38,7 +38,9 @@ async def update_user(data, is_live, recalculate=False, new_danmakus=0):
         'total_clips': total_clip,
         'total_danmu': total_danmu,
         'face': data['data']['user_info']['face'],
-        'last_live': last_clip.start_time if last_clip else None
+        'last_live': last_clip.start_time if last_clip else None,
+        'hidden': False,
+        'archive': False
     }
 
     # 更新或者创建
