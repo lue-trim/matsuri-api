@@ -91,7 +91,7 @@ def jsonl_parse(file_content, clip_id):
                 medal_level = medal_guard_info[0]
                 guard_level = medal_guard_info[10]
             else:
-                medal_name =medal_level = guard_level = None
+                medal_name = medal_level = guard_level = None
             info = {
                 "clip_id": clip_id,
                 "time": timestamp_to_date(js['info'][0][4]),
@@ -101,7 +101,12 @@ def jsonl_parse(file_content, clip_id):
                 "medal_level": medal_level,
                 "guard_level": guard_level,
                 "text": js['info'][1],
-            }
+                "superchat_price": 0,
+                "gift_name": "",
+                "gift_price": 0,
+                "gift_num": 0,
+                "is_misc": False
+            } # 任何一项为null都会被视为礼物弹幕
             summary["danmakus"].append(Comments(**info))
             summary["plain_danmakus"].append(info)
         elif cmd == "SEND_GIFT":
@@ -115,11 +120,11 @@ def jsonl_parse(file_content, clip_id):
                 "medal_level": js['data']['medal_info']['medal_level'],
                 "guard_level": js['data']['medal_info']['guard_level'],
                 "text": None,
-                "gift_price": js['data']['price'] / 1000,
+                "gift_price": js['data']['total_coin'] / 1000,
                 "gift_num": js['data']['num'],
                 "gift_name": js['data']['giftName']
             }
-            total_price = info['gift_num'] * info['gift_price']
+            total_price = info['gift_price'] # total_coin是实际收入，跟数量无关
             summary["danmakus"].append(Comments(**info))
             summary['total_gift'] += total_price
             summary['total_reward'] += total_price
@@ -134,7 +139,7 @@ def jsonl_parse(file_content, clip_id):
                 "medal_level": js['data']['medal_info']['medal_level'],
                 "guard_level": js['data']['medal_info']['guard_level'],
                 "text": js['data']['message'],
-                "superchat_price": js['data']['price'] / 1000,
+                "superchat_price": js['data']['price'],
             }
             total_price = info['superchat_price']
             summary["danmakus"].append(Comments(**info))
