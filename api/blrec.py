@@ -48,9 +48,9 @@ async def update_user(data, is_live, recalculate=False, new_danmakus=0):
     # 更新或者创建
     channel = await Channels.get_or_none(bilibili_live_room = room_id)
     if channel:
-        channel.update_from_dict(channel_info)
+        await channel.update_from_dict(channel_info)
     else:
-        Channels.create(**channel_info)
+        await Channels.create(**channel_info)
 
 async def start_clip(data):
     '开始录制'

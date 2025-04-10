@@ -125,4 +125,4 @@ if __name__ == "__main__":
     config.load()
     run_async(db.init_db())
     uvicorn.run(app=app, host=config.app['host'], port=config.app['port'])
-    db.close()
+    run_async(db.close())
