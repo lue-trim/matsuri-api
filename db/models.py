@@ -20,12 +20,12 @@ class CommentsBaseModel(Model):
     class Meta:
         ordering = ['-time']
     
-    @classmethod
-    def filter(cls, no_enter_message=True, *args, **kwargs):
-        if no_enter_message:
-            return super().filter(*args, **kwargs).exclude(is_misc=False)
-        else:
-            return super().filter(*args, **kwargs)
+    # @classmethod
+    # def filter(cls, no_enter_message=True, *args, **kwargs):
+    #     if no_enter_message:
+    #         return super().filter(*args, **kwargs).exclude(is_misc=False)
+    #     else:
+    #         return super().filter(*args, **kwargs)
 
 class AllComments(CommentsBaseModel):
     '所有弹幕, 但是好像实际上在API里完全没什么作用, 目前闲置'
