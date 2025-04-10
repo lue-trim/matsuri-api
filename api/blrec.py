@@ -86,7 +86,7 @@ async def update_clip(data):
 
     # 更新弹幕信息
     danmakus_list = danmakus_info['danmakus']
-    Comments.bulk_create(danmakus_list)
+    await Comments.bulk_create(danmakus_list)
     # AllComments.bulk_create(danmakus_list)
 
     # 生成uuid

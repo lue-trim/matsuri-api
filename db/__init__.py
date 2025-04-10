@@ -27,7 +27,7 @@ async def init_db():
 
 async def close():
     '关闭数据库连接'
-    tortoise.connections.close_all()
+    await tortoise.connections.close_all(discard=False)
 
 async def add_danmaku(danmakus_list, clip_id=None):
     '添加弹幕'
