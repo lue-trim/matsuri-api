@@ -13,3 +13,7 @@ database = "matsuri_db"
 [blrec]
 host = "127.0.0.1"
 port = "2233"
+
+[log]
+file = ""
+level = "INFO"

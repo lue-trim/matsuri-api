@@ -1,4 +1,5 @@
 import datetime, json, os, re, requests, uuid
+from loguru import logger
 from db.models import ClipInfo, Comments
 from static import config
 
@@ -40,7 +41,7 @@ def xml_get(patt, s):
     if res:
         return res.group()
     else:
-        print(f"no result for {patt} in {s}")
+        logger.error(f"no result for {patt} in {s}")
         return None
 
 def jsonl_parse(file_content, clip_id):
@@ -233,7 +234,7 @@ def get_danmakus_info(data):
 
     # xml
     xml_path = f"{os.path.splitext(jsonl_path)[0]}.xml"
-    print(f"Reading {xml_path}")
+    logger.debug(f"Reading {xml_path}")
     with open(xml_path, "r", encoding='utf-8') as f:
         file_content = f.readlines()
     xml_summary = xml_parse(file_content)
