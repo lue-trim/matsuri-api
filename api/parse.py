@@ -1,4 +1,4 @@
-import datetime, json, os, re, requests
+import datetime, json, os, re, requests, uuid
 from db.models import ClipInfo, Comments
 from static import config
 
@@ -21,6 +21,10 @@ def date_to_mili_timestamp(t:datetime.datetime):
     '2025-04-02 12:02:01 -> 1743566521395(毫秒)'
     return int(t.timestamp() * 1000)
 
+def get_uuid(room_id:int, start_time:datetime.datetime):
+    '通过房间号和开播时间计算uuid'
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{room_id}{start_time}"))
+
 async def get_room_info(room_id):
     '从blrec获取房间信息'
     host = config.blrec['host']
@@ -39,7 +43,7 @@ def xml_get(patt, s):
         print(f"no result for {patt} in {s}")
         return None
 
-def jsonl_parse(file_content):
+def jsonl_parse(file_content, clip_id):
     summary = {
         "danmakus": [],
         "all_danmakus": [],
@@ -67,6 +71,7 @@ def jsonl_parse(file_content):
                 fans_medal = js['data']['fans_medal']
             uname = js['data']['uname']
             info = {
+                "clip_id": clip_id,
                 "time": timestamp_to_date(js['data']['timestamp'], ms=False),
                 "username": uname,
                 "user_id": js['data']['uid'],
@@ -87,6 +92,7 @@ def jsonl_parse(file_content):
             else:
                 medal_name =medal_level = guard_level = None
             info = {
+                "clip_id": clip_id,
                 "time": timestamp_to_date(js['info'][0][4]),
                 "username": js['info'][2][1],
                 "user_id": js['info'][2][0],
@@ -100,6 +106,7 @@ def jsonl_parse(file_content):
         elif cmd == "SEND_GIFT":
             # 投喂礼物
             info = {
+                "clip_id": clip_id,
                 "time": timestamp_to_date(js['data']['timestamp'], ms=False),
                 "username": js['data']['uname'],
                 "user_id": js['data']['uid'],
@@ -118,6 +125,7 @@ def jsonl_parse(file_content):
         elif cmd == "SUPER_CHAT_MESSAGE":
             # SC
             info = {
+                "clip_id": clip_id,
                 "time": timestamp_to_date(js['send_time']),
                 "username": js['data']['user_info']['uname'],
                 "user_id": js['data']['uid'],
@@ -134,6 +142,7 @@ def jsonl_parse(file_content):
         elif cmd == "GUARD_BUY":
             # 大航海
             info = {
+                "clip_id": clip_id,
                 "time": timestamp_to_date(js['data']['start_time'], ms=False),
                 "username": js['data']['username'],
                 "user_id": js['data']['uid'],
@@ -163,6 +172,9 @@ def xml_parse(file_content):
     room_id = xml_get("room_id", file_content)
     room_id = int(room_id)
 
+    # Clip ID
+    clip_id = get_uuid(room_id, live_start_time)
+
     # 主鳖的名字
     liver_name = xml_get("user_name", file_content)
 
@@ -170,6 +182,7 @@ def xml_parse(file_content):
     title = xml_get("room_title", file_content)
 
     return {
+        'clip_id': clip_id,
         'title': title,
         'room_id': room_id,
         'liver_name': liver_name,
@@ -213,15 +226,10 @@ def highlight_parse(plain_danmakus_list:list):
     return summary_list
 
 def get_danmakus_info(data):
-    '从原始弹幕文件结束的webhook信息和具体文件中提取信息（缺少id）'
+    '从原始弹幕文件结束的webhook信息和具体文件中提取信息'
     # webhook消息
     jsonl_path = data['data']['path']
     end_time = date1_to_time(data['date'])
-
-    # jsonl
-    with open(jsonl_path, 'r', encoding='utf-8') as f:
-        file_content = f.readlines()
-    summary = jsonl_parse(file_content=file_content)
 
     # xml
     xml_path = f"{os.path.splitext(jsonl_path)[0]}.xml"
@@ -229,6 +237,12 @@ def get_danmakus_info(data):
     with open(xml_path, "r", encoding='utf-8') as f:
         file_content = f.readlines()
     xml_summary = xml_parse(file_content)
+
+    # jsonl
+    with open(jsonl_path, 'r', encoding='utf-8') as f:
+        file_content = f.readlines()
+    clip_id = xml_summary['clip_id']
+    summary = jsonl_parse(file_content=file_content, clip_id=clip_id)
 
     # 计算时间和弹幕频率（条/分钟）
     start_time:datetime.datetime = xml_summary['record_start_time']

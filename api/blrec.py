@@ -1,16 +1,12 @@
 'blrec相关API'
-import json, datetime, functools, uuid, requests
+import functools
 from db.models import *
-from static import config
-from .parse import get_danmakus_info, get_room_info
+#from static import config
+from .parse import get_danmakus_info, get_room_info, get_uuid
 
 def __count_danmakus(clip_list:list):
     '计算弹幕总数'
     return functools.reduce(lambda x,y:x+y.total_danmu, clip_list, initial=0)
-
-def __get_uuid(room_id:int, start_time:datetime.datetime):
-    '通过房间号和开播时间计算uuid'
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{room_id}{start_time}"))
 
 async def update_user(data, is_live, recalculate=False, new_danmakus=0):
     '更新主鳖信息'
@@ -89,8 +85,8 @@ async def update_clip(data):
     await Comments.bulk_create(danmakus_list)
     # AllComments.bulk_create(danmakus_list)
 
-    # 生成uuid
-    clip_id = __get_uuid(room_id, live_start_time)
+    # 获取场次ID
+    clip_id = danmakus_info['clip_id']
 
     # 更新场次信息
     clip_info = {
