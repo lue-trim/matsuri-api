@@ -137,7 +137,7 @@ def jsonl_parse(file_content, clip_id):
                 "superchat_price": js['data']['price'] / 1000,
             }
             total_price = info['superchat_price']
-            summary["danmakus"].append(info)
+            summary["danmakus"].append(Comments(**info))
             summary['total_reward'] += total_price
             summary['total_superchat'] += total_price
         elif cmd == "GUARD_BUY":

@@ -77,9 +77,11 @@ def update_channel(room_id):
 
     # 确定在不在啵
     is_live = not blrec_data['task_status']['running_status'] == "waiting"
+    data_id = str(uuid.uuid4())
+    data_date = datetime.datetime.now().strftime(r"%Y-%m-%d %H:%M:%S.%f+08:00")
     data = {
-        "id": "",
-        "date": "", # 不需要多余的参数
+        "id": data_id,
+        "date": data_date,
         "type": "LiveBeganEvent" if is_live else "LiveEndedEvent",
         "data": blrec_data
         }
