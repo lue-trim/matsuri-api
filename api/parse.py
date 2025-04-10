@@ -221,7 +221,7 @@ def highlight_parse(plain_danmakus_list:list):
 
         # 发现超过了60秒后
         danmakus_seg_list.append(danmakus_seg)
-        summary_list.append(dict([(key, 0) for key in keywords[1:]] + [('time', ts)]))
+        summary_list.append(dict([(key, 0) for key in keywords[1:]] + [('time', seg_start_ts)]))
         seg_idx += 1
 
     # 识别关键词个数
