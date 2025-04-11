@@ -6,7 +6,8 @@ from .parse import get_danmakus_info, get_room_info, get_uuid
 
 def __count_danmakus(clip_list:list):
     '计算弹幕总数'
-    return functools.reduce(lambda x,y:x+y['total_danmu'], clip_list, initial=0)
+    #return functools.reduce(lambda x,y:x+y['total_danmu'], clip_list, initial=0)
+    return sum([i['total_danmu'] for i in clip_list])
 
 async def update_user(data, is_live):
     '更新主鳖信息'
