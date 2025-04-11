@@ -101,12 +101,12 @@ def jsonl_parse(file_content, clip_id):
                 "medal_level": medal_level,
                 "guard_level": guard_level,
                 "text": js['info'][1],
-                "superchat_price": 0,
-                "gift_name": "",
+                "superchat_price": None,
+                "gift_name": None,
                 "gift_price": 0,
                 "gift_num": 0,
                 "is_misc": False
-            } # 任何一项为null都会被视为礼物弹幕
+            } # 有superchat_price和gift_name中的任何一项, 都会被视为礼物弹幕
             summary["danmakus"].append(Comments(**info))
             summary["plain_danmakus"].append(info)
         elif cmd == "SEND_GIFT":
@@ -121,7 +121,7 @@ def jsonl_parse(file_content, clip_id):
                 "guard_level": js['data']['medal_info']['guard_level'],
                 "text": None,
                 "gift_price": js['data']['total_coin'] / 1000,
-                "gift_num": js['data']['num'],
+                "gift_num": 1, # 已经按实际收入算了就不要js['data']['num']了
                 "gift_name": js['data']['giftName']
             }
             total_price = info['gift_price'] # total_coin是实际收入，跟数量无关

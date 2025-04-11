@@ -7,7 +7,7 @@ from .parse import get_room_info, date_to_mili_timestamp
 
 ### Clip
 async def get_clip_id(clip_id):
-    '获取场次信息'
+    '获取场次概览信息'
     clip_info = await ClipInfo.get_or_none(clip_id=clip_id)
     if not clip_info:
         return None
@@ -35,27 +35,28 @@ async def get_clip_id(clip_id):
     }
 
 async def get_clip_id_comments(clip_id):
-    '获取特定场次弹幕'
+    '获取特定场次的所有弹幕'
     # EXTRACT(EPOCH FROM "time")*1000 as time, username, user_id, superchat_price, 
     # gift_name, gift_price, gift_num, "text" 
     # FROM all_comments WHERE clip_id = $1 ORDER BY "time"', [id])
-    danmakus = await Comments.filter(clip_id=clip_id).all().order_by("time")
-    if not danmakus:
-        return {
-            'status': 0, 'data': []
-        }
-    data = [{
-        'time': date_to_mili_timestamp(danmaku.time),
-        'username': danmaku.username,
-        'user_id': danmaku.user_id, 
-        'superchat_price': danmaku.superchat_price, 
-        'gift_name': danmaku.gift_name, 
-        'gift_price': danmaku.gift_price, 
-        'gift_num':danmaku.gift_num, 
-        'text': danmaku.text,
-    } for danmaku in danmakus]
+    danmakus = await Comments.filter(clip_id=clip_id).all().order_by("time").values(
+        'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+        'gift_num', "text"
+    )
+
+    # 处理数据库返回的信息
+    for idx, danmaku in enumerate(danmakus):
+        # 把返回值可以null的部分去掉
+        for nullable_key in ['superchat_price', 'gift_name']:
+            if danmaku[nullable_key] is None:
+                danmakus[idx].pop(nullable_key)
+        # 把时间改成毫秒时间戳
+        danmakus[idx].update({
+            'time': date_to_mili_timestamp(danmaku['time'])
+        })
+
     return {
-        'status': 0, 'data': data
+        'status': 0, 'data': danmakus
     }
 
 
