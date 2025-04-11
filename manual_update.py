@@ -26,6 +26,7 @@ def find_danmaku_file(path):
         if ext == ".xml":
             if os.path.exists(f"{filename}.jsonl"):
                 res_list.append(f"{filename}.xml")
+    res_list.sort()
     return res_list
 
 def update_danmakus(search_path):

@@ -6,25 +6,24 @@ from .parse import get_danmakus_info, get_room_info, get_uuid
 
 def __count_danmakus(clip_list:list):
     '计算弹幕总数'
-    return functools.reduce(lambda x,y:x+y.total_danmu, clip_list, initial=0)
+    return functools.reduce(lambda x,y:x+y['total_danmu'], clip_list, initial=0)
 
-async def update_user(data, is_live, recalculate=False, new_danmakus=0):
+async def update_user(data, is_live):
     '更新主鳖信息'
     # 获取场次信息
     uid = data['data']['room_info']['uid']
-    clip_count = await ClipInfo.filter(bilibili_uid=uid).all().count()
-    last_clip = await ClipInfo.filter(bilibili_uid=uid).all().order_by('-start_time').first()
-    if last_clip:
-        last_danmu = last_clip.total_danmu
-        total_clip = clip_count
-        if recalculate:
-            clip_list = await ClipInfo.filter(bilibili_uid=uid).all()
-            total_danmu = __count_danmakus(clip_list)
-        else:
-            total_danmu = last_clip.total_danmu + new_danmakus
+    user_clips = await ClipInfo.filter(bilibili_uid=uid).all().order_by('-start_time').values(
+        'total_danmu', 'start_time'
+    )
+    total_clip = len(user_clips)
+    if total_clip > 0:
+        last_clip = user_clips[0]
+        last_live = last_clip['start_time']
+        last_danmu = last_clip['total_danmu']
+        total_danmu = __count_danmakus(user_clips)
     else:
+        last_live = None
         last_danmu = 0
-        total_clip = 0
         total_danmu = 0
 
     # 提取频道信息
@@ -38,7 +37,7 @@ async def update_user(data, is_live, recalculate=False, new_danmakus=0):
         'total_clips': total_clip,
         'total_danmu': total_danmu,
         'face': data['data']['user_info']['face'],
-        'last_live': last_clip.start_time if last_clip else None,
+        'last_live': last_live,
         'hidden': False,
         'archive': False
     }
@@ -111,7 +110,7 @@ async def update_clip(data):
             'total_gift': total_gift + last_clip.total_gift,
             'total_superchat': total_superchat + last_clip.total_superchat,
             'total_reward':  total_reward + last_clip.total_reward,
-            'highlights': highlights + last_clip.highlights,
+            'highlights': last_clip.highlights + highlights,
             'viewers': viewers + last_clip.viewers,
         })
         await last_clip.update_from_dict(clip_info)
