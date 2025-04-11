@@ -200,6 +200,9 @@ def highlight_parse(plain_danmakus_list:list):
     '从弹幕列表中提取高能关键词(暂时只支持"草""?/？""哈哈"和应援词)'
     if not plain_danmakus_list:
         return []
+    # 排个序
+    plain_danmakus_list.sort(key=lambda x:x['time'])
+
     # 预定义关键词
     keywords = ["time", "草", "?", "？", "哈哈", "好好好", "牛蛙", "wase", "call", "/\\"]
 
@@ -208,21 +211,19 @@ def highlight_parse(plain_danmakus_list:list):
     summary_list = []
 
     # 将弹幕文字内容进行分段
-    seg_num = len(summary_list)
+    # seg_num = len(summary_list)
     danmakus_seg_list = []
     seg_idx = 0
     while plain_danmakus_list:
         seg_start_ts = start_ts + 60000*seg_idx
         end_ts = 60000 + seg_start_ts
+        logger.debug(f"current: {seg_start_ts}, end: {end_ts}")
         danmakus_seg = ""
         current_ts = date_to_mili_timestamp(plain_danmakus_list[0]['time'])
-        while current_ts < end_ts:
+        while current_ts < end_ts and len(plain_danmakus_list) > 0:
             current_danmaku = plain_danmakus_list.pop(0)
             danmakus_seg += current_danmaku['text']
             current_ts = date_to_mili_timestamp(current_danmaku['time'])
-            if not plain_danmakus_list:
-                # 后面没弹幕了就退出
-                break
 
         # 发现超过了60秒后
         danmakus_seg_list.append(danmakus_seg)

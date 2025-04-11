@@ -13,12 +13,12 @@ async def update_user(data, is_live):
     '更新主鳖信息'
     # 获取场次信息
     uid = data['data']['room_info']['uid']
-    user_clips = await ClipInfo.filter(bilibili_uid=uid).all().order_by('-start_time').values(
+    user_clips = await ClipInfo.filter(bilibili_uid=uid).all().order_by('start_time').values(
         'total_danmu', 'start_time'
     )
     total_clip = len(user_clips)
     if total_clip > 0:
-        last_clip = user_clips[0]
+        last_clip = user_clips[-1]
         last_live = last_clip['start_time']
         last_danmu = last_clip['total_danmu']
         total_danmu = __count_danmakus(user_clips)
