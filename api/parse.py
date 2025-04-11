@@ -32,7 +32,10 @@ async def get_room_info(room_id):
     port = config.blrec['port']
     url = f"http://{host}:{port}/api/v1/tasks/{room_id}/data"
     res = requests.get(url)
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        logger.error(f"Cannot connect to blrec:{e.with_traceback()}")
 
 def xml_get(patt, s):
     '用于xml字段的正则表达式匹配'
@@ -162,6 +165,8 @@ def jsonl_parse(file_content, clip_id):
             summary['total_gift'] += total_price
             summary['total_reward'] += total_price
     # 最后
+    summary['total_gift'] = int(summary['total_gift']*100) / 100
+    summary['total_reward'] = int(summary['total_reward']*100) / 100
     summary['total_danmakus'] = len(summary['danmakus'])
     return summary
 
@@ -217,7 +222,7 @@ def highlight_parse(plain_danmakus_list:list):
     while plain_danmakus_list:
         seg_start_ts = start_ts + 60000*seg_idx
         end_ts = 60000 + seg_start_ts
-        logger.debug(f"current: {seg_start_ts}, end: {end_ts}")
+        # logger.debug(f"current: {seg_start_ts}, end: {end_ts}")
         danmakus_seg = ""
         current_ts = date_to_mili_timestamp(plain_danmakus_list[0]['time'])
         while current_ts < end_ts and len(plain_danmakus_list) > 0:
@@ -259,15 +264,17 @@ def get_danmakus_info(data):
     start_time:datetime.datetime = xml_summary['record_start_time']
     clip_time = end_time - start_time
     danmu_density = summary['total_danmakus'] / (clip_time.total_seconds()/60)
+    danmu_density = int(danmu_density*100) / 100
 
     # 识别高能词
     highlights = highlight_parse(summary['plain_danmakus'])
 
     # 最终结果
-    return {
+    res = {
         **summary,
         **xml_summary,
         'end_time': end_time,
         'danmu_density': danmu_density,
         'highlights': highlights
     }
+    return res

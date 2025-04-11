@@ -16,6 +16,7 @@ async def get_clip_id(clip_id):
     # total_danmu, total_gift, total_superchat, total_reward, highlights, 
     # viewers AS views
     data = {
+        'name': clip_info.name,
         'id': clip_info.clip_id,
         'bilibili_uid': clip_info.bilibili_uid,
         'title': clip_info.title,
@@ -106,7 +107,7 @@ async def get_channel_id_clips(mid:int):
     # SELECT id, bilibili_uid, title, EXTRACT(EPOCH FROM start_time)*1000 AS start_time, 
     # EXTRACT(EPOCH FROM end_time)*1000 AS end_time, cover, total_danmu, 
     # viewers AS views FROM clip_info WHERE bilibili_uid= $1 ORDER BY start_time DESC
-    clips = await ClipInfo.filter(bilibili_uid=mid).all().order_by("start_time")
+    clips = await ClipInfo.filter(bilibili_uid=mid).all().order_by("-start_time")
     if not clips:
         return None
     data = [{

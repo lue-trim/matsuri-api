@@ -1,5 +1,6 @@
 'blrec相关API'
 import functools
+from loguru import logger
 from db.models import *
 #from static import config
 from .parse import get_danmakus_info, get_room_info, get_uuid
@@ -44,9 +45,9 @@ async def update_user(data, is_live):
     }
 
     # 更新或者创建
-    channel = await Channels.get_or_none(bilibili_live_room = room_id)
+    channel = await Channels.get(bilibili_live_room = room_id)
     if channel:
-        await channel.update_from_dict(channel_info)
+        await Channels.filter(bilibili_live_room = room_id).update(**channel_info)
     else:
         await Channels.create(**channel_info)
 
@@ -92,6 +93,7 @@ async def update_clip(data):
     clip_id = danmakus_info['clip_id']
 
     # 更新场次信息
+    logger.debug(f"Clip ID: {clip_id}")
     clip_info = {
         'name': username,
         'bilibili_uid': uid,
@@ -114,7 +116,9 @@ async def update_clip(data):
             'highlights': last_clip.highlights + highlights,
             'viewers': viewers + last_clip.viewers,
         })
-        await last_clip.update_from_dict(clip_info)
+        await ClipInfo.filter(clip_id=clip_id).update(**clip_info)
+        clip_info.pop('highlights')
+        logger.debug(f"Updated: {clip_info}")
     else:
         # 新建分段
         clip_info.update({
@@ -129,3 +133,5 @@ async def update_clip(data):
             'viewers': viewers,
         })
         await ClipInfo.create(**clip_info)
+        clip_info.pop('highlights')
+        logger.debug(f"Created: {clip_info}")
