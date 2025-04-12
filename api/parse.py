@@ -20,6 +20,8 @@ def timestamp_to_date(timestamp, ms=True):
 
 def date_to_mili_timestamp(t:datetime.datetime):
     '2025-04-02 12:02:01 -> 1743566521395(毫秒)'
+    if not t:
+        return None
     return int(t.timestamp() * 1000)
 
 def get_uuid(room_id:int, start_time:datetime.datetime):
