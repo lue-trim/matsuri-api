@@ -202,14 +202,14 @@ def xml_parse(file_content):
         }
 
 def highlight_parse(plain_danmakus_list:list):
-    '从弹幕列表中提取高能关键词(暂时只支持"草""?/？""哈哈"和应援词)'
+    '从弹幕列表中提取高能关键词(暂时只支持"草""？""哈哈"和应援词)'
     if not plain_danmakus_list:
         return []
     # 排个序
     plain_danmakus_list.sort(key=lambda x:x['time'])
 
     # 预定义关键词
-    keywords = ["time", "草", "?", "？", "哈哈", "好好好", "牛蛙", "wase", "call", "/\\"]
+    keywords = ["草", "？", "哈", "好好好", "牛蛙", "wase", "call"]
 
     # 确定如何对时间进行分段
     start_ts = date_to_mili_timestamp(plain_danmakus_list[0]['time'])
@@ -232,12 +232,12 @@ def highlight_parse(plain_danmakus_list:list):
 
         # 发现超过了60秒后
         danmakus_seg_list.append(danmakus_seg)
-        summary_list.append(dict([(key, 0) for key in keywords[1:]] + [('time', seg_start_ts)]))
+        summary_list.append(dict([(key, 0) for key in keywords] + [('time', seg_start_ts)]))
         seg_idx += 1
 
     # 识别关键词个数
     for idx, danmakus_seg in enumerate(danmakus_seg_list):
-        for key in keywords[1:]:
+        for key in keywords:
             summary_list[idx][key] = danmakus_seg.count(key)
     return summary_list
 

@@ -45,7 +45,7 @@ async def update_user(data, is_live):
     }
 
     # 更新或者创建
-    channel = await Channels.get(bilibili_live_room = room_id)
+    channel = await Channels.get_or_none(bilibili_live_room = room_id)
     if channel:
         await Channels.filter(bilibili_live_room = room_id).update(**channel_info)
     else:
