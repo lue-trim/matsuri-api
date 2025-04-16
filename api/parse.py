@@ -30,9 +30,8 @@ def get_uuid(room_id:int, start_time:datetime.datetime):
 
 async def get_room_info(room_id):
     '从blrec获取房间信息'
-    host = config.blrec['host']
-    port = config.blrec['port']
-    url = f"http://{host}:{port}/api/v1/tasks/{room_id}/data"
+    host = config.app['blrec_url']
+    url = f"{host}/api/v1/tasks/{room_id}/data"
     res = requests.get(url)
     try:
         return res.json()
@@ -150,7 +149,7 @@ def jsonl_parse(file_content, clip_id):
             summary["danmakus"].append(Comments(**info))
             summary['total_reward'] += total_price
             summary['total_superchat'] += total_price
-        elif cmd == "GUARD_BUY":
+        elif cmd == "USER_TOAST_MSG":
             # 大航海
             info = {
                 "clip_id": clip_id,
@@ -158,17 +157,17 @@ def jsonl_parse(file_content, clip_id):
                 "username": js['data']['username'],
                 "user_id": js['data']['uid'],
                 "text": None,
-                "gift_price": js['data']['price'] / 1000,
-                "gift_num": js['data']['num'],
-                "gift_name": js['data']['gift_name']
+                "gift_price": js['data']['price'] * js['data']['num'] / 1000,
+                "gift_num": 1,
+                "gift_name": js['data']['role_name']
             }
             total_price = info['gift_num'] * info['gift_price']
             summary["danmakus"].append(Comments(**info))
             summary['total_gift'] += total_price
             summary['total_reward'] += total_price
     # 最后
-    summary['total_gift'] = int(summary['total_gift']*100) / 100
-    summary['total_reward'] = int(summary['total_reward']*100) / 100
+    summary['total_gift'] = int(summary['total_gift']*10) / 10
+    summary['total_reward'] = int(summary['total_reward']*10) / 10
     summary['total_danmakus'] = len(summary['danmakus'])
     return summary
 

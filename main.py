@@ -1,6 +1,7 @@
 from typing import Annotated
-from fastapi import FastAPI, Header, Response, HTTPException
+from fastapi import FastAPI, Header, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from ipaddress import ip_address
 import uvicorn
 from pydantic import BaseModel
 from tortoise import run_async
@@ -29,8 +30,19 @@ app.add_middleware(
 
 
 ### blrec webhook
+def check_ip (req: Request):
+    request_ip = ip_address(req.client.host)
+    allow_ip_list = [ip_address(ip) for ip in config.app['allow_post_ips']]
+    if request_ip not in allow_ip_list:
+        raise HTTPException(
+            status_code=403, 
+            detail="You are unauthorized here."
+            )
+    else:
+        return True
+
 @app.post("/rec")
-async def rec_handle(data: BlrecWebhookData):
+async def rec_handle(data: BlrecWebhookData, ip_check=Depends(check_ip)):
     'webhook处理'
     #data = json.loads(data)
     data = data.dict()

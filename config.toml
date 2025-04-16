@@ -2,6 +2,8 @@
 host = "127.0.0.1"
 port = 23562
 safe_origin = "luetrim.top"
+blrec_url = "http://127.0.0.1:2233"
+allow_post_ips = ['127.0.0.1'] # 只有列表里的IP地址可以发送post请求
 
 [postgres]
 host = "127.0.0.1"
@@ -9,10 +11,6 @@ port = 63154
 user = "postgres"
 password = ""
 database = "matsuri_db"
-
-[blrec]
-host = "127.0.0.1"
-port = "2233"
 
 [log]
 file = ""

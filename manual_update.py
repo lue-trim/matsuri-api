@@ -65,9 +65,8 @@ def update_channel(room_id):
     logger.info(f"Updating channel {room_id}..")
 
     # 先向blrec问个信息
-    host = config.blrec['host']
-    port = config.blrec['port']
-    url = f"http://{host}:{port}/api/v1/tasks/{room_id}/data"
+    host = config.app['blrec_url']
+    url = f"{host}/api/v1/tasks/{room_id}/data"
     params = {"room_id": int(room_id)}
     res = requests.get(url, params=params)
     if res:
