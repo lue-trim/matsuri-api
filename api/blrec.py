@@ -135,3 +135,10 @@ async def update_clip(data):
         await ClipInfo.create(**clip_info)
         clip_info.pop('highlights')
         logger.debug(f"Created: {clip_info}")
+
+    # 顺带更新一下直播信息
+    is_live = room_info['task_status']['running_status'] == "waiting"
+    await update_user(
+        data={'data': room_info},
+        is_live=is_live
+        )

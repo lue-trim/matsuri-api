@@ -1,16 +1,16 @@
 [app]
 host = "127.0.0.1"
 port = 23562
-safe_origin = "luetrim.top"
+safe_origin = "luetrim.top" # 访问/views时限制访问来源用的
 blrec_url = "http://127.0.0.1:2233"
 allow_post_ips = ['127.0.0.1'] # 只有列表里的IP地址可以发送post请求
 
 [postgres]
 host = "127.0.0.1"
 port = 63154
-user = "postgres"
-password = ""
-database = "matsuri_db"
+user = "postgres" # postgres用户名，保持默认即可
+password = "" # postgres密码
+database = "matsuri_db" # 要加载的数据库名称（如果不存在，要先创建一个）
 
 [log]
 file = ""
