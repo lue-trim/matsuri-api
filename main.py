@@ -62,8 +62,8 @@ async def rec_handle(data: BlrecWebhookData, ip_check=Depends(check_ip)):
 
 ### Matsuri前端API
 # Index
-@app.get("/")
-async def get_index(res:HTMLResponse):
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
     '-> 所有频道'
     res_data = \
 """
