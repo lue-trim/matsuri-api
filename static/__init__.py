@@ -35,6 +35,7 @@ class __Config:
 config = __Config()
 
 # 初始化记录器
+loguru.logger.remove()
 log_file = config.log['file']
 level = config.log['level']
 if log_file:

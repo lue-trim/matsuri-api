@@ -1,6 +1,7 @@
 from typing import Annotated
 from fastapi import FastAPI, Header, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from ipaddress import ip_address
 import uvicorn
 from pydantic import BaseModel
@@ -62,16 +63,47 @@ async def rec_handle(data: BlrecWebhookData, ip_check=Depends(check_ip)):
 ### Matsuri前端API
 # Index
 @app.get("/")
-async def get_index():
+async def get_index(res:HTMLResponse):
     '-> 所有频道'
-    res_data = """<html lang="zh-cn">
+    res_data = \
+"""
+<!DOCTYPE html>
+<html lang="zh-cn">
     <head>
-        <title>虽然不知道为什么要做这个网页</title>
+        <title>Matsuri API</title>
+        <style>
+            ::selection {
+                background: #80abff80;
+            }
+            @font-face {
+                font-family: "阿里巴巴普惠体 2.0 65 Medium";
+                font-weight: 400;
+                src: url("https://cdn.jsdelivr.net/gh/lue-trim/lue-trim.github.io/static/font/3rfuFKwVRC0r.woff2") format("woff2"),
+                url("https://cdn.jsdelivr.net/gh/lue-trim/lue-trim.github.io/static/font/3rfuFKwVRC0r.woff") format("woff");
+                font-display: swap;
+            }
+            * {
+                font-family: "阿里巴巴普惠体 2.0 65 Medium";
+            }
+            .image_container {
+                align-self: center;
+                width: 800px;
+                height: 600px;
+                background-size: cover;
+                border-radius: 5%;
+            }
+            .normal_text {
+                align-self: center;
+            }
+        </style>
     </head>
     <body>
-        <h1>但是为了保持API的一致性, 既然原作者brainbrush加了那我也放一个</h1>
+        <h1 class="normal_text">恭喜你抓到了一只雅典娜叽！</h1>
+        <img class="image_container" alt="早稻叽" :src="https://i0.hdslb.com/bfs/new_dyn/f77d22df1ecd7e63033618a6f7816da51950658.jpg">
+        <p class="normal_text">这个页面只是用来测试的，如果你找到了这里，那就说明你知道得太多了……</p>
     </body>
-</html>"""
+</html>
+"""
     return res_data
 
 # Channel
