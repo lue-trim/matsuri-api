@@ -1,7 +1,15 @@
 import datetime, json, os, re, requests, uuid
+import xml.etree.ElementTree as ET
 from loguru import logger
 from db.models import ClipInfo, Comments
 from static import config
+
+def relative_ts_to_time(ts, start_time:datetime.datetime):
+    '相对时间戳转绝对时间'
+    relative_ts = float(ts)
+    delta_time = datetime.timedelta(seconds=relative_ts)
+    final_time = start_time + delta_time
+    return final_time
 
 def date1_to_time(time_in_blrec:str):
     '2025-04-02 12:00:24.255628+08:00 -> datetime'
@@ -48,6 +56,112 @@ def xml_get(patt, s):
         logger.error(f"no result for {patt} in {s}")
         return None
 
+def xmlonly_parse(file_content:str, clip_id:str, record_start_time:datetime.datetime):
+    '只有xml文件时用这个解析'
+    summary = {
+        "danmakus": [],
+        "all_danmakus": [],
+        "plain_danmakus": [], # 供分析高能词用
+        "total_danmakus": 0,
+        "total_superchat": 0,
+        "total_reward":  0,
+        "total_gift": 0,
+        "viewers": 0,
+        "last_danmaku": None,
+    }
+
+    # 开始解析
+    if type(file_content) is list:
+        file_content = "\n".join(file_content)
+    root = ET.fromstring(file_content)
+    info = {}
+
+    # 普通弹幕
+    for d in root.findall('d'):
+        # 时间
+        p = d.get('p')
+        relative_ts = p[:p.find(',')] # 取出p属性的第一个元素
+        final_time = relative_ts_to_time(relative_ts, record_start_time)
+        info = {
+            "clip_id": clip_id,
+            "time": final_time,
+            "username": d.get('user'),
+            "user_id": int(d.get('uid')),
+            "medal_name": None, # 无法从xml里获取
+            "medal_level": None,
+            "guard_level": None,
+            "text": d.text,
+            "superchat_price": None,
+            "gift_name": None,
+            "gift_price": 0,
+            "gift_num": 0,
+            "is_misc": False
+        }
+        summary["danmakus"].append(Comments(**info))
+        summary["plain_danmakus"].append(info)
+
+    # 礼物
+    for gift in root.findall('gift'):
+        info = {
+            "clip_id": clip_id,
+            "time": relative_ts_to_time(gift.get('ts'), record_start_time),
+            "username": gift.get('user'),
+            "user_id": int(gift.get('uid')),
+            "medal_name": None,
+            "medal_level": None,
+            "guard_level": None,
+            "text": None,
+            "gift_price": int(gift.get('price')) / 1000,
+            "gift_num": int(gift.get('giftcount')),
+            "gift_name": gift.get('giftname')
+        }
+        total_price = info['gift_price'] * info['gift_num']
+        summary["danmakus"].append(Comments(**info))
+        summary['total_gift'] += total_price
+        summary['total_reward'] += total_price
+
+    # SC
+    for sc in root.findall('sc'):
+        info = {
+            "clip_id": clip_id,
+            "time": relative_ts_to_time(sc.get('ts'), record_start_time),
+            "username": sc.get('user'),
+            "user_id": int(sc.get('uid')),
+            "medal_name": None,
+            "medal_level": None,
+            "guard_level": None,
+            "text": sc.text,
+            "superchat_price": int(sc.get('price')) / 1000,
+        }
+        total_price = info['superchat_price']
+        summary["danmakus"].append(Comments(**info))
+        summary['total_reward'] += total_price
+        summary['total_superchat'] += total_price
+
+    # 大航海
+    for toast in root.findall('toast'):
+        info = {
+            "clip_id": clip_id,
+            "time": relative_ts_to_time(toast.get('ts'), record_start_time),
+            "username": toast.get('user'),
+            "user_id": int(toast.get('uid')),
+            "text": None,
+            "gift_price": int(toast.get('price')) / 1000,
+            "gift_num": int(toast.get('count')),
+            "gift_name": toast.get('role')
+        }
+        total_price = info['gift_num'] * info['gift_price']
+        summary["danmakus"].append(Comments(**info))
+        summary['total_gift'] += total_price
+        summary['total_reward'] += total_price
+
+    # 最后
+    summary['total_gift'] = int(summary['total_gift']*10) / 10
+    summary['total_reward'] = int(summary['total_reward']*10) / 10
+    summary['total_danmakus'] = len(summary['danmakus'])
+    summary['last_danmaku'] = info
+    return summary
+
 def jsonl_parse(file_content, clip_id):
     summary = {
         "danmakus": [],
@@ -57,8 +171,11 @@ def jsonl_parse(file_content, clip_id):
         "total_superchat": 0,
         "total_reward":  0,
         "total_gift": 0,
-        "viewers": 0
+        "viewers": 0,
+        "last_danmaku": None,
     }
+
+    info = {}
     for line in file_content:
         try:
             js = json.loads(line)
@@ -169,6 +286,7 @@ def jsonl_parse(file_content, clip_id):
     summary['total_gift'] = int(summary['total_gift']*10) / 10
     summary['total_reward'] = int(summary['total_reward']*10) / 10
     summary['total_danmakus'] = len(summary['danmakus'])
+    summary['last_danmaku'] = info
     return summary
 
 def xml_parse(file_content):
@@ -256,13 +374,18 @@ def get_danmakus_info(data):
     xml_summary = xml_parse(file_content)
 
     # jsonl
-    with open(jsonl_path, 'r', encoding='utf-8') as f:
-        file_content = f.readlines()
     clip_id = xml_summary['clip_id']
-    summary = jsonl_parse(file_content=file_content, clip_id=clip_id)
+    if os.path.exists(jsonl_path):
+        with open(jsonl_path, 'r', encoding='utf-8') as f:
+            file_content = f.readlines()
+        summary = jsonl_parse(file_content=file_content, clip_id=clip_id)
+    else:
+        summary = xmlonly_parse(file_content=file_content, clip_id=clip_id, record_start_time=xml_summary['record_start_time'])
 
     # 计算时间和弹幕频率（条/分钟）
     start_time:datetime.datetime = xml_summary['record_start_time']
+    if summary['last_danmaku'] != {}:
+        end_time = summary['last_danmaku']['time']
     clip_time = end_time - start_time
     danmu_density = summary['total_danmakus'] / (clip_time.total_seconds()/60)
     danmu_density = int(danmu_density*100) / 100

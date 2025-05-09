@@ -47,6 +47,7 @@ async def update_user(data, is_live):
     # 更新或者创建
     channel = await Channels.get_or_none(bilibili_live_room = room_id)
     if channel:
+        channel_info['hidden'] = channel.hidden
         await Channels.filter(bilibili_live_room = room_id).update(**channel_info)
     else:
         await Channels.create(**channel_info)
@@ -61,6 +62,7 @@ async def end_clip(data):
 
 async def update_clip(data):
     '完成弹幕文件时更新录制信息'
+    filename = data['data']['path']
     # 反查直播间信息
     room_id = data['data']['room_id']
     room_info = await get_room_info(room_id)
@@ -83,6 +85,15 @@ async def update_clip(data):
     total_reward = danmakus_info['total_reward']
     highlights = danmakus_info['highlights']
     viewers = danmakus_info['viewers']
+
+    # 检查是不是这段已经上传过了
+    d = danmakus_info['last_danmaku']
+    if d == {}:
+        logger.warning(f"No danmakus found in {filename}, skipping...")
+        return
+    elif await Comments.get_or_none(**d):
+        logger.warning(f"Duplicated danmakus detected in {filename}, skipping...")
+        return
 
     # 更新弹幕信息
     danmakus_list = danmakus_info['danmakus']
@@ -142,3 +153,8 @@ async def update_clip(data):
         data={'data': room_info},
         is_live=is_live
         )
+
+    # 输出一下
+    start_t = live_start_time.strftime(r"%Y-%m-%d %H:%M:%S%z")
+    end_t = end_time.strftime(r"%Y-%m-%d %H:%M:%S%z")
+    logger.info(f"Update complete: ID={room_id} Start={start_t} End={end_t}")
