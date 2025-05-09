@@ -4,6 +4,11 @@ from loguru import logger
 from db.models import ClipInfo, Comments
 from static import config
 
+def float_to_decimal(num:float, decimal=2):
+    '浮点数保留小数'
+    p = 10 ** decimal
+    return int(num * p) / p
+
 def relative_ts_to_time(ts, start_time:datetime.datetime):
     '相对时间戳转绝对时间'
     relative_ts = float(ts)

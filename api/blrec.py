@@ -3,7 +3,7 @@ import functools
 from loguru import logger
 from db.models import *
 #from static import config
-from .parse import get_danmakus_info, get_room_info, get_uuid
+from .parse import get_danmakus_info, get_room_info, get_uuid, float_to_decimal
 
 def __count_danmakus(clip_list:list):
     '计算弹幕总数'
@@ -71,6 +71,13 @@ async def update_clip(data):
     # title = room_info['room_info']['title'] # 不要现场获取，从xml读才是正确的
     cover = room_info['room_info']['cover'] # 但是封面信息是真读不到
 
+    # 顺带更新一下直播信息
+    is_live = room_info['task_status']['running_status'] != "waiting"
+    await update_user(
+        data={'data': room_info},
+        is_live=is_live
+        )
+
     # 解析弹幕文件
     danmakus_info = get_danmakus_info(data)
     title = danmakus_info['title']
@@ -88,17 +95,21 @@ async def update_clip(data):
 
     # 检查是不是这段已经上传过了
     d = danmakus_info['last_danmaku']
+    is_duplicate = await Comments.get_or_none(**d) is not None
     if d == {}:
+        # 弹幕为空
         logger.warning(f"No danmakus found in {filename}, skipping...")
-        return
-    elif await Comments.get_or_none(**d):
+        # return
+    elif is_duplicate:
+        # 最后一条弹幕已存在
+        logger.debug(f"Duplicate: {d}")
         logger.warning(f"Duplicated danmakus detected in {filename}, skipping...")
-        return
-
-    # 更新弹幕信息
-    danmakus_list = danmakus_info['danmakus']
-    await Comments.bulk_create(danmakus_list)
-    # AllComments.bulk_create(danmakus_list)
+        # return
+    else:
+        # 弹幕不为空且最后一条弹幕在弹幕库里不存在
+        danmakus_list = danmakus_info['danmakus']
+        await Comments.bulk_create(danmakus_list)
+        # AllComments.bulk_create(danmakus_list)
 
     # 获取场次ID
     clip_id = danmakus_info['clip_id']
@@ -116,15 +127,15 @@ async def update_clip(data):
     last_clip = await ClipInfo.get_or_none(clip_id=clip_id)
     if last_clip:
         # 自动合并进之前的分段
-        last_clip = await ClipInfo.filter(clip_id=clip_id).order_by('time').first()
+        last_clip = await ClipInfo.filter(clip_id=clip_id).order_by('start_time').first()
         total_danmu = total_danmu + last_clip.total_danmu
         total_minutes = (end_time - live_start_time).total_seconds()/60
         clip_info.update({
-            'danmu_density': total_danmu / total_minutes,
+            'danmu_density': float_to_decimal(total_danmu/total_minutes, 3),
             'total_danmu': total_danmu,
-            'total_gift': int((total_gift + last_clip.total_gift)*100) / 100,
-            'total_superchat': int((total_superchat + last_clip.total_superchat)*100) / 100,
-            'total_reward':  int((total_reward + last_clip.total_reward)*100) / 100,
+            'total_gift': float_to_decimal(total_gift + last_clip.total_gift),
+            'total_superchat': float_to_decimal(total_superchat + last_clip.total_superchat),
+            'total_reward':  float_to_decimal(total_reward + last_clip.total_reward),
             'highlights': last_clip.highlights + highlights,
             'viewers': viewers,
         })
@@ -136,24 +147,17 @@ async def update_clip(data):
         clip_info.update({
             'clip_id': clip_id,
             'bilibili_uid': uid,
-            'danmu_density': danmu_density,
+            'danmu_density': float_to_decimal(danmu_density, 3),
             'total_danmu': total_danmu,
-            'total_gift': total_gift,
-            'total_superchat': total_superchat,
-            'total_reward':  total_reward,
+            'total_gift': float_to_decimal(total_gift),
+            'total_superchat': float_to_decimal(total_superchat),
+            'total_reward':  float_to_decimal(total_reward),
             'highlights': highlights,
             'viewers': viewers,
         })
         await ClipInfo.create(**clip_info)
         clip_info.pop('highlights')
         logger.debug(f"Created: {clip_info}")
-
-    # 顺带更新一下直播信息
-    is_live = room_info['task_status']['running_status'] != "waiting"
-    await update_user(
-        data={'data': room_info},
-        is_live=is_live
-        )
 
     # 输出一下
     start_t = live_start_time.strftime(r"%Y-%m-%d %H:%M:%S%z")

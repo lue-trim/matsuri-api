@@ -3,7 +3,7 @@ import datetime
 from tortoise.exceptions import DoesNotExist
 from db.models import *
 #from ..static import config
-from .parse import get_room_info, date_to_mili_timestamp, highlight_parse
+from .parse import get_room_info, date_to_mili_timestamp, highlight_parse, float_to_decimal
 
 ### Clip
 async def delete_clip(clip_id):
@@ -18,6 +18,12 @@ async def refresh_clip(clip_id):
     if not old_clip:
         return None
 
+    # 结束时间
+    last_danmaku = await Comments.filter(clip_id=clip_id).order_by("-time").first()
+    end_time = last_danmaku.time
+    if end_time < old_clip.end_time:
+        end_time = old_clip.end_time
+
     # 高能弹幕
     plain_danmakus = await Comments.filter(
         clip_id=clip_id, superchat_price=None, gift_name=None, 
@@ -25,6 +31,12 @@ async def refresh_clip(clip_id):
             'time', 'text'
             )
     highlights = highlight_parse(plain_danmakus)
+
+    # 开始时间
+    first_danmaku = await Comments.filter(clip_id=clip_id).order_by("time").first()
+    start_time = first_danmaku.time
+    if start_time > old_clip.start_time:
+        start_time = old_clip.start_time
 
     # 收入统计
     all_danmakus = await Comments.filter(clip_id=clip_id).all().values('gift_price', 'superchat_price')
@@ -40,16 +52,18 @@ async def refresh_clip(clip_id):
 
     # 弹幕统计
     total_danmu = len(all_danmakus)
-    total_mins = (old_clip.end_time - old_clip.start_time).total_seconds() / 60
+    total_mins = (end_time - old_clip.start_time).total_seconds() / 60
     danmu_density = total_danmu / total_mins
 
     # 综合
     clip_info = {
-        'danmu_density': danmu_density,
+        'start_time': start_time,
+        'end_time': end_time,
+        'danmu_density': float_to_decimal(danmu_density, 3),
         'total_danmu': total_danmu,
-        'total_gift': int((total_gift) * 100) / 100,
-        'total_superchat': int((total_superchat) * 100) / 100,
-        'total_reward': int((total_gift + total_superchat) * 100) / 100,
+        'total_gift': float_to_decimal(total_gift),
+        'total_superchat': float_to_decimal(total_superchat),
+        'total_reward': float_to_decimal(total_gift + total_superchat),
         'highlights': highlights,
     }
     await ClipInfo.filter(clip_id=clip_id).update(**clip_info)
