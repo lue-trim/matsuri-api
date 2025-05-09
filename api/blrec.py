@@ -116,16 +116,17 @@ async def update_clip(data):
     last_clip = await ClipInfo.get_or_none(clip_id=clip_id)
     if last_clip:
         # 自动合并进之前的分段
+        last_clip = await ClipInfo.filter(clip_id=clip_id).order_by('time').first()
         total_danmu = total_danmu + last_clip.total_danmu
         total_minutes = (end_time - live_start_time).total_seconds()/60
         clip_info.update({
             'danmu_density': total_danmu / total_minutes,
             'total_danmu': total_danmu,
-            'total_gift': total_gift + last_clip.total_gift,
-            'total_superchat': total_superchat + last_clip.total_superchat,
-            'total_reward':  total_reward + last_clip.total_reward,
+            'total_gift': int((total_gift + last_clip.total_gift)*100) / 100,
+            'total_superchat': int((total_superchat + last_clip.total_superchat)*100) / 100,
+            'total_reward':  int((total_reward + last_clip.total_reward)*100) / 100,
             'highlights': last_clip.highlights + highlights,
-            'viewers': viewers + last_clip.viewers,
+            'viewers': viewers,
         })
         await ClipInfo.filter(clip_id=clip_id).update(**clip_info)
         clip_info.pop('highlights')
