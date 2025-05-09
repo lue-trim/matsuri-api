@@ -4,14 +4,14 @@ from loguru import logger
 from api import parse
 from static import config
 
-def send_matsuri(data, api_path):
+def send_matsuri(data="", params="", api_path="/"):
     '向服务端发送'
     host = config.app['host']
     port = config.app['port']
     #prefix = "https" if config.app['https'] else "http"
     prefix = "http"
     url = f"{prefix}://{host}:{port}{api_path}"
-    res = requests.post(url, data=json.dumps(data))
+    res = requests.post(url, data=json.dumps(data), params=json.dumps(params))
     if res:
         return res.json()
     else:
@@ -98,18 +98,33 @@ def update_channel(room_id):
         }
 
     # 发送
-    send_matsuri(data, api_path="/rec")
+    send_matsuri(data=data, api_path="/rec")
+
+def update_clip(clip_id):
+    '更新场次信息'
+    logger.info(f"Updating clip {clip_id}..")
+    send_matsuri(api_path=f"/refresh/clip/{clip_id}")
+
+def delete_clip(clip_id):
+    '删除场次和弹幕'
+    logger.info(f"Deleting clip {clip_id}..")
+    send_matsuri(api_path=f"/delete/clip/{clip_id}")
 
 def usage():
     '--help'
-    print("""给matsuri-api人工发送更新指令
-Usage: python manual_update.py [options]
+    print("""
+给matsuri-api手动发送更新指令
+Usage: python manual_update.py <options> [<param>]
 -h / --help:\t显示这条帮助并退出
 -c / --config:\t指定配置文件
--d / --danmakus <path>:\t更新弹幕和直播场次信息
-\t<path>:\t包含场次和弹幕信息的jsonl文件所在文件夹(子文件夹也会被识别)
+-d / --delete <clip_id>:\t删除指定场次和弹幕
+\tclip_id:\t场次的uuid(可通过弹幕站的具体场次url获取)
+-r / --refresh <clip_id>:\t刷新指定场次的弹幕和礼物统计信息(不包含封面)
+\tclip_id:\t场次的uuid(可通过弹幕站的具体场次url获取)
+-u / --upload <path>:\t上传弹幕并更新场次信息
+\tpath:\t包含场次和弹幕信息的jsonl文件所在文件夹(子文件夹也会被识别)
 -a / --channel <room_id>:\t更新直播间信息
-\t<room_id>:\t要自动识别的jsonl所在文件夹
+\troom_id:\t要自动识别的jsonl所在文件夹
 """)
     quit()
 
@@ -118,13 +133,15 @@ def main():
     config_path = "config.toml"
     search_path = ""
     room_id = ""
+    del_clip_id = ""
+    ref_clip_id = ""
     config.load(config_path)
 
     # 解析参数
     options, args = getopt.getopt(
         sys.argv[1:], 
-        "hd:c:a:", 
-        ["help", "danmakus=", "channel=", "config="]
+        "hd:c:a:u:r:", 
+        ["help", "upload=", "channel=", "config=", "delete=", "refresh="]
         )
     for name, value in options:
         if name in ("-h","--help"):
@@ -132,15 +149,23 @@ def main():
             quit()
         elif name in ("-c", "--config"):
             config_path = value
-        elif name in ("-d", "--danmakus"):
+        elif name in ("-u", "--upload"):
             search_path = value
         elif name in ("-a", "--channel"):
             room_id = value
+        elif name in ("-d", "--delete"):
+            del_clip_id = value
+        elif name in ("-r", "--refresh"):
+            ref_clip_id = value
 
     if search_path:
         update_danmakus(search_path)
     if room_id:
         update_channel(room_id)
+    if del_clip_id:
+        delete_clip(clip_id=del_clip_id)
+    if ref_clip_id:
+        update_clip(clip_id=ref_clip_id)
 
 if __name__ == "__main__":
     main()

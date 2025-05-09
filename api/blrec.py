@@ -120,7 +120,7 @@ async def update_clip(data):
         total_minutes = (end_time - live_start_time).total_seconds()/60
         clip_info.update({
             'danmu_density': total_danmu / total_minutes,
-            'total_danmu': total_danmu + last_clip.total_danmu,
+            'total_danmu': total_danmu,
             'total_gift': total_gift + last_clip.total_gift,
             'total_superchat': total_superchat + last_clip.total_superchat,
             'total_reward':  total_reward + last_clip.total_reward,

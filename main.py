@@ -60,6 +60,27 @@ async def rec_handle(data: BlrecWebhookData, ip_check=Depends(check_ip)):
     return {"code": 200, "message": "Mua~"}
 
 
+### 手动刷新接口
+@app.post("/refresh/clip/{clip_id}")
+async def refresh_clip(clip_id: UUID, ip_check=Depends(check_ip)):
+    '刷新片段信息'
+    res_data = await matsuri.refresh_clip(clip_id)
+    if res_data:
+        return res_data
+    else:
+        raise HTTPException(status_code=404, detail="Clip not found.")
+
+
+@app.post("/delete/clip/{clip_id}")
+async def delete_clip(clip_id: UUID, ip_check=Depends(check_ip)):
+    '删除片段信息'
+    res_data = await matsuri.delete_clip(clip_id)
+    if res_data:
+        return res_data
+    else:
+        raise HTTPException(status_code=404, detail="Clip not found.")
+
+
 ### Matsuri前端API
 # Index
 @app.get("/", response_class=HTMLResponse)

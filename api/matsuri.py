@@ -3,9 +3,58 @@ import datetime
 from tortoise.exceptions import DoesNotExist
 from db.models import *
 #from ..static import config
-from .parse import get_room_info, date_to_mili_timestamp
+from .parse import get_room_info, date_to_mili_timestamp, highlight_parse
 
 ### Clip
+async def delete_clip(clip_id):
+    '删除指定弹幕和场次'
+    await ClipInfo.get(clip_id=clip_id).delete()
+    await Comments.filter(clip_id=clip_id).all().delete()
+    return {"code": 200}
+
+async def refresh_clip(clip_id):
+    '手动刷新场次信息'
+    old_clip = await ClipInfo.get_or_none(clip_id=clip_id)
+    if not old_clip:
+        return None
+
+    # 高能弹幕
+    plain_danmakus = await Comments.filter(
+        clip_id=clip_id, superchat_price=None, gift_name=None, 
+        ).all().order_by("time").values(
+            'time', 'text'
+            )
+    highlights = highlight_parse(plain_danmakus)
+
+    # 收入统计
+    all_danmakus = await Comments.filter(clip_id=clip_id).all().values('gift_price', 'superchat_price')
+    total_gift = 0
+    total_superchat = 0
+    for d in all_danmakus:
+        gift_price = d['gift_price']
+        sc_price = d['superchat_price']
+        if gift_price:
+            total_gift += gift_price
+        elif sc_price:
+            total_superchat += sc_price
+
+    # 弹幕统计
+    total_danmu = len(all_danmakus)
+    total_mins = (old_clip.end_time - old_clip.start_time).total_seconds() / 60
+    danmu_density = total_danmu / total_mins
+
+    # 综合
+    clip_info = {
+        'danmu_density': danmu_density,
+        'total_danmu': total_danmu,
+        'total_gift': int((total_gift) * 100) / 100,
+        'total_superchat': int((total_superchat) * 100) / 100,
+        'total_reward': int((total_gift + total_superchat) * 100) / 100,
+        'highlights': highlights,
+    }
+    await ClipInfo.filter(clip_id=clip_id).update(**clip_info)
+    return {"code": 200}
+
 async def get_clip_id(clip_id):
     '获取场次概览信息'
     clip_info = await ClipInfo.get_or_none(clip_id=clip_id)
