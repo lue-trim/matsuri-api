@@ -2,11 +2,12 @@
 作为[matsuri](https://github.com/lue-trim/matsuri.icu)的后端使用，兼具与blrec联动更新弹幕数据库的功能
 
 ## Feature
-- 纯Python实现
-- 与[原版麻酱api](https://github.com/brainbush/api.matsuri.icu)完全兼容  
-（更新弹幕数据的部分除外）
+- FastAPI异步实现
+- 与[api.matsuri.icu](https://github.com/brainbush/api.matsuri.icu)大致兼容  
+（仅数据库的clipinfo部分字段有差异）
 - 可以与[HarukaBot修改版](https://github.com/lue-trim/haruka-bot)共享同一个conda环境
 - 与[blrec](https://github.com/lue-trim/haruka-bot)无缝对接
+- 自己增加了一部分的增删改REST接口
 
 ## 整个项目的组成部分简介
 ### matsuri-api (本仓库)  
@@ -38,12 +39,11 @@
 1. 不出意外的话只要让它一直运行就可以了
 ### matsuri-api
 1. 环境  
-    在[HarukaBot](https://github.com/lue-trim/haruka-bot)的conda环境的基础上再安装一个toml包
+    在[HarukaBot](https://github.com/lue-trim/haruka-bot)的基础上再安装一个toml包
     ```bash
-    conda activate HarukaBot # 注意替换环境名字
     pip install toml
     ```
-    > 需要注意的是，因为自动更新弹幕信息时blrec发送过来的不是弹幕文件本身，而是它的路径，所以matsuri-api最好跟blrec部署在**同一台**机器上
+    > 需要注意的是，因为自动更新弹幕信息时blrec只会发过来文件路径，而不是发送具体内容，所以matsuri-api最好跟blrec部署在**同一台**机器上
 1. 修改配置  
     编辑config.toml，按照里面的说明修改一下设置就好
 1. 运行  
@@ -51,15 +51,16 @@
     ```bash
     python main.py
     ```
-- 如果想手动更新弹幕和直播间信息怎么办？
-    位于同一个目录下的`manual_update.py`可以帮忙（使用-h/--help查看具体使用说明）：
+- 如果想手动更新/删除弹幕和直播间信息怎么办？  
+    位于同一个目录下的`manual_update.py`可以完成直播间信息/场次信息/弹幕的补录、更新和删除操作（使用-h/--help查看具体使用说明）：  
+    但是因为封面只能靠即时获取，所以没有留下更新封面的接口；如果要修改，得手动进postgres后台改一下（见下文）  
     ```bash
     python manual_update.py -h
     ```
-- 那如果想删除弹幕或直播间信息呢？  
-    可以自己登录PostgreSQL后端使用命令进行操作，不想要的内容直接删掉就可以了
+- 那如果想手动修改更多信息呢？  
+    可以自己登录PostgreSQL终端操作
     ```bash
-    docker exec -itd postgres psql -U postgres
+    docker exec -it postgres psql -U postgres
     ```
 ### blrec
 1. 在`Webhooks`设置里添加matsuri-api的url，比如：
