@@ -114,7 +114,10 @@ def usage():
     '--help'
     print("""
 给matsuri-api手动发送更新指令
+
 Usage: python manual_update.py <options> [<param>]
+
+Options: 
 -h / --help:\t显示这条帮助并退出
 -c / --config:\t指定配置文件
 -d / --delete <clip_id>:\t删除指定场次和弹幕
@@ -124,7 +127,7 @@ Usage: python manual_update.py <options> [<param>]
 -u / --upload <path>:\t上传弹幕并更新场次信息
 \tpath:\t包含场次和弹幕信息的jsonl文件所在文件夹(子文件夹也会被识别)
 -a / --channel <room_id>:\t更新直播间信息
-\troom_id:\t要自动识别的jsonl所在文件夹
+\troom_id:\t直播间号(不支持短号)
 """)
     quit()
 

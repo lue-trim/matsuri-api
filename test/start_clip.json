@@ -1,10 +1,10 @@
 {
   "id": "88c85786-8cc4-11ec-9d5b-d8bbc192d668",
-  "date": "2022-02-13 20:00:27.795258+08:00",
+  "date": "631-12-07 20:00:27.795258+08:00",
   "type": "LiveBeganEvent",
   "data": {
     "user_info": {
-      "name": "HiiroVTuber",
+      "name": "测试",
       "gender": "保密",
       "face": "https://i1.hdslb.com/bfs/face/57ca47873b5aea1390eca6ef57c70df6ad6bf4a4.jpg",
       "uid": 508963009,
@@ -12,8 +12,8 @@
       "sign": "901 IQ, 不是 425KG 的 debu, cat！在学中文【直播是晚上8点，在动态通知】"
     },
     "room_info": {
-      "uid": 508963009,
-      "room_id": 21919321,
+      "uid": 1950658,
+      "room_id": 41682,
       "short_room_id": 0,
       "area_id": 371,
       "area_name": "虚拟主播",
@@ -22,7 +22,7 @@
       "live_status": 1,
       "live_start_time": 1644753625,
       "online": 0,
-      "title": "周末三国",
+      "title": "测试",
       "cover": "https://i0.hdslb.com/bfs/live/new_room_cover/23ef422289a090301c805272c54e35100f09ae86.jpg",
       "tags": "英语,VUP,VTUBER,HIIRO,VTB",
       "description": "加入舰长群请点击此处加入门卫处：1168079129\n\n欢迎来到Hiiro的直播间！弹幕互动请遵守以下规则：\n政治、宗教、冲塔、人身攻击等言论 ×\n在直播时进行无关话题的讨论 ×\n不跟节奏不出警，不当弹幕请留给管理员处理 ✓\n包容、和谐地与大家一起享受直播 ✓\n\n\n\n直播日程表：\n周一、周四：休息\n周二：轻松的内容（画画、写字、杂谈等）\n周三、周五：游戏直播（单人或联动）\n周六：杂谈、棉花糖、唱歌\n周日：学中文、做试卷"
