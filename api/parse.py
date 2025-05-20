@@ -115,7 +115,7 @@ def xmlonly_parse(file_content:str, clip_id:str, record_start_time:datetime.date
             "medal_name": None,
             "medal_level": None,
             "guard_level": None,
-            "text": None,
+            "text": gift.get('giftname'),
             "gift_price": int(gift.get('price')) / 1000,
             "gift_num": int(gift.get('giftcount')),
             "gift_name": gift.get('giftname')
@@ -150,7 +150,7 @@ def xmlonly_parse(file_content:str, clip_id:str, record_start_time:datetime.date
             "time": relative_ts_to_time(toast.get('ts'), record_start_time),
             "username": toast.get('user'),
             "user_id": int(toast.get('uid')),
-            "text": None,
+            "text": toast.get('role'),
             "gift_price": int(toast.get('price')) / 1000,
             "gift_num": int(toast.get('count')),
             "gift_name": toast.get('role')
@@ -245,7 +245,7 @@ def jsonl_parse(file_content, clip_id):
                 "medal_name": js['data']['medal_info']['medal_name'],
                 "medal_level": js['data']['medal_info']['medal_level'],
                 "guard_level": js['data']['medal_info']['guard_level'],
-                "text": None,
+                "text": js['data']['giftName'],
                 "gift_price": js['data']['total_coin'] / 1000,
                 "gift_num": 1, # 已经按实际收入算了就不要js['data']['num']了
                 "gift_name": js['data']['giftName']
@@ -278,7 +278,7 @@ def jsonl_parse(file_content, clip_id):
                 "time": timestamp_to_date(js['data']['start_time'], ms=False),
                 "username": js['data']['username'],
                 "user_id": js['data']['uid'],
-                "text": None,
+                "text": js['data']['role_name'],
                 "gift_price": js['data']['price'] * js['data']['num'] / 1000,
                 "gift_num": 1,
                 "gift_name": js['data']['role_name']
