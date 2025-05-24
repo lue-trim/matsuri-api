@@ -1,5 +1,6 @@
 '处理Matsuri API'
 import datetime
+from loguru import logger
 from tortoise.exceptions import DoesNotExist
 from db.models import *
 #from ..static import config
@@ -214,15 +215,18 @@ async def get_mid_date(mid:int, date:str):
 
 
 ### Viewer
-async def get_search_danmaku(danmaku:str):
+async def get_search_danmaku(danmaku:str, page:int):
     '弹幕全局搜索'
     danmakus_list = await Comments.filter(
-        text__in=danmaku
-        ).group_by('clip_id').order_by('time').offset(50*(page-1)).limit(50)
+        text__contains=danmaku
+        ).order_by('-time').offset(30*(page-1)).limit(30).values(
+        'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+        'gift_num', 'text', 'clip_id'
+        )
     # Page要-1，因为前端是从1开始算的
-    return __get_final_list(danmakus_list)
+    return await (__get_final_list(danmakus_list))
 
-async def get_viewer_mid(mid:int, page:int):
+async def get_viewer_mid(mid:int, page:int, recaptcha_token):
     '获取指定用户的发言'
     # SELECT DISTINCT(clip_id),MAX(time) as time FROM comments 
     # WHERE user_id = $1 GROUP BY clip_id ORDER BY "time" DESC LIMIT 10 OFFSET $2
@@ -230,30 +234,38 @@ async def get_viewer_mid(mid:int, page:int):
     # 太复杂了，直接取100条吧
     danmakus_info_list = await Comments.filter(
         no_enter_message=False, user_id=mid
-        ).group_by('clip_id').order_by('time').offset(50*(page-1)).limit(50)
-    return __get_final_list(danmakus_info_list)
+        ).order_by('-time').offset(50*(page-1)).limit(50).values(
+        'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+        'gift_num', 'text', 'clip_id'
+        )
+    return (await __get_final_list(danmakus_info_list))
 
-def __get_final_list(danmakus_info_list):
+async def __get_final_list(danmakus_info_list):
     '统一处理返回值'
     danmakus_dict = {}
     for item in danmakus_info_list:
-        clip_id = item.clip_id
-        clip_item = danmakus_dict.get(clip_id, default=None)
+        clip_id = item.get('clip_id', None)
+        clip_item = danmakus_dict.get(clip_id, None)
         if clip_item:
-            danmakus_dict['clip_id'].append(item)
+            danmakus_dict[clip_id].append(item)
         else:
-            danmakus_dict.update({clip_id: []})
+            danmakus_dict.setdefault(clip_id, [item])
     
     # 获取场次信息
+    logger.warning(f"{danmakus_dict}")
     final_list = []
     for clip_id in danmakus_dict.keys():
         # SELECT id, bilibili_uid, EXTRACT(EPOCH FROM start_time)*1000 AS start_time, 
         # title, cover, danmu_density, EXTRACT(EPOCH FROM end_time)*1000 AS end_time, 
         # total_danmu, total_gift, total_reward, total_superchat, viewers AS views 
         # FROM clip_info WHERE id = $1', [clip_id]
-        clip_info = await ClipInfo.get(clip_id=clip_id).values(
+        clip_info = await ClipInfo.get_or_none(clip_id=clip_id).values(
             'name', 'clip_id', 'bilibili_uid', 'start_time', 'title', 'cover', 'danmu_density', 'end_time', 'total_danmu', 'total_gift', 'total_reward', 'total_superchat', 'viewers'
             )
+        if not clip_info:
+            logger.warning(f"No such clip_id: {clip_id}")
+            continue
+
         # SELECT name FROM channels WHERE bilibili_uid = $1
         clip_info.update({
             'id': clip_info['clip_id'],
@@ -263,19 +275,18 @@ def __get_final_list(danmakus_info_list):
         })
         clip_info.pop('clip_id')
         clip_info.pop('viewers')
+
         # SELECT EXTRACT(EPOCH FROM "time")*1000 as time, username, user_id, 
         # superchat_price, gift_name, gift_price, gift_num, "text" FROM comments 
         # WHERE clip_id = $1 AND user_id = $2 ORDER BY "time"
-        full_comments = [{
-            'time': date_to_mili_timestamp(c.time), 
-            'username': c.username, 
-            'user_id': c.user_id, 
-            'superchat_price': c.superchat_price, 
-            'gift_name': c.gift_name, 
-            'gift_price': c.gift_price, 
-            'gift_num': c.gift_num, 
-            'text': c.text
-        } for c in danmakus_dict['clip_id']]
+        full_comments = danmakus_dict[clip_id]
+        if not full_comments:
+            logger.warning(f"Clip ID {clip_id} not found.")
+        for idx, c in enumerate(full_comments):
+            full_comments[idx]['time'] = date_to_mili_timestamp(c['time'])
+            # full_comments.append(c)
+
+        # 最终返回值
         final_list.append({
             'clip_info': clip_info, 
             'full_comments': full_comments

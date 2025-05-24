@@ -169,30 +169,40 @@ async def get_clip_id_comments(id:str, res:Response):
     res.headers['Cache-Control'] = 'max-age=31536000'
     return res_data
 
-# Off Comments
+# Viewer
+@app.get("/viewer/{mid}")
+async def get_viewer_mid(mid:int, page:int, req:Request):
+    'MID -> 对应mid发送的弹幕'
+    header = req.headers
+    origin = header['Origin']
+    recaptcha_token = header['token']
+    # 检查目标来源(这里没写反哦)
+    if not origin or config.app['safe_origin'] not in origin:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Request origin {origin} is not authorized."
+            )
+    res_data = await matsuri.get_viewer_mid(mid, page, recaptcha_token)
+    return res_data
+
+@app.get("/search/{danmaku}")
+async def get_search_danmaku(danmaku:str, page:int, req:Request):
+    'danmaku -> 全局搜索到的弹幕'
+    header = req.headers
+    origin = header['Origin'] if header else None
+    if not origin or config.app['safe_origin'] not in origin:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Request origin {origin} is not authorized."
+            )
+    res_data = await matsuri.get_search_danmaku(danmaku, page)
+    return res_data
+
+# Off Comments, 这个因为mid匹配的范围太广会覆盖其他路由，不能放前面
 @app.get("/{mid}/{date}")
 async def get_mid_date(mid:int, date:str):
     '主播MID+日期 -> 在该日期及一天以后的时间段内的下播弹幕'
     res_data = await matsuri.get_mid_date(mid, date)
-    return res_data
-
-# Viewer
-@app.get("/viewer/{mid}")
-async def get_viewer_mid(mid:int, page:int, header:Annotated[str|None,Header()]):
-    'MID -> 对应mid发送的弹幕'
-    origin = header['origin']
-    if not origin or config.app['safe_origin'] not in origin:
-        raise HTTPException(status_code=403, detail="Request origin not authorized.")
-    res_data = await matsuri.get_viewer_mid(mid, page)
-    return res_data
-
-@app.get("/search/{danmaku}")
-async def get_search_danmaku(danmaku:str, page:int, header:Annotated[str|None,Header()]):
-    'danmaku -> 全局搜索到的弹幕'
-    origin = header['origin']
-    if not origin or config.app['safe_origin'] not in origin:
-        raise HTTPException(status_code=403, detail="Request origin not authorized.")
-    res_data = await matsuri.get_search_danmaku(danmaku, page)
     return res_data
 
 if __name__ == "__main__":
