@@ -186,6 +186,15 @@ async def get_viewer_mid(mid:int, page:int, header:Annotated[str|None,Header()])
     res_data = await matsuri.get_viewer_mid(mid, page)
     return res_data
 
+@app.get("/search/{danmaku}")
+async def get_search_danmaku(danmaku:str, page:int, header:Annotated[str|None,Header()]):
+    'danmaku -> 全局搜索到的弹幕'
+    origin = header['origin']
+    if not origin or config.app['safe_origin'] not in origin:
+        raise HTTPException(status_code=403, detail="Request origin not authorized.")
+    res_data = await matsuri.get_search_danmaku(danmaku, page)
+    return res_data
+
 if __name__ == "__main__":
     config.load()
     run_async(db.init_db())

@@ -214,6 +214,14 @@ async def get_mid_date(mid:int, date:str):
 
 
 ### Viewer
+async def get_search_danmaku(danmaku:str):
+    '弹幕全局搜索'
+    danmakus_list = await Comments.filter(
+        text__in=danmaku
+        ).group_by('clip_id').order_by('time').offset(50*(page-1)).limit(50)
+    # Page要-1，因为前端是从1开始算的
+    return __get_final_list(danmakus_list)
+
 async def get_viewer_mid(mid:int, page:int):
     '获取指定用户的发言'
     # SELECT DISTINCT(clip_id),MAX(time) as time FROM comments 
@@ -222,7 +230,11 @@ async def get_viewer_mid(mid:int, page:int):
     # 太复杂了，直接取100条吧
     danmakus_info_list = await Comments.filter(
         no_enter_message=False, user_id=mid
-        ).group_by('clip_id').order_by('time').offset(10*page).limit(10)
+        ).group_by('clip_id').order_by('time').offset(50*(page-1)).limit(50)
+    return __get_final_list(danmakus_info_list)
+
+def __get_final_list(danmakus_info_list):
+    '统一处理返回值'
     danmakus_dict = {}
     for item in danmakus_info_list:
         clip_id = item.clip_id
