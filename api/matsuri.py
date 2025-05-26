@@ -226,7 +226,7 @@ async def get_search_danmaku(danmaku:str, page:int):
     # Page要-1，因为前端是从1开始算的
     return await (__get_final_list(danmakus_list))
 
-async def get_viewer_mid(mid:int, page:int, recaptcha_token):
+async def get_viewer_mid(mid:int, page:int):
     '获取指定用户的发言'
     # SELECT DISTINCT(clip_id),MAX(time) as time FROM comments 
     # WHERE user_id = $1 GROUP BY clip_id ORDER BY "time" DESC LIMIT 10 OFFSET $2

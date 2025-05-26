@@ -1,4 +1,7 @@
+from loguru import logger
+
 from typing import Annotated
+from aiohttp import ClientSession
 from fastapi import FastAPI, Header, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -170,42 +173,74 @@ async def get_clip_id_comments(id:str, res:Response):
     return res_data
 
 # Viewer
+async def check_origin(req: Request):
+    '检测Origin是否合规'
+    request_origin = req.headers.get('origin', None)
+    allow_origin_list = config.app.get('allow_origin_list', None)
+
+    if not allow_origin_list:
+        # 老版设置
+        safe_origin = config.app['safe_origin']
+        return (safe_origin in request_origin)
+    else:
+        # 新版设置
+        for safe_origin in allow_origin_list:
+            if safe_origin in request_origin:
+                return True
+
+    # 如果都不对
+    raise HTTPException(
+        status_code=403, 
+        detail=f"Request origin {request_origin} is unauthorized."
+    )
+
+async def check_token(req: Request):
+    '检查验证码'
+    recaptcha_token = req.headers.get('token', None)
+    request_ip = ip_address(req.client.host)
+    if recaptcha_token:
+        # 检查一下是不是要除了第一页以外的页数
+        # 不然获取第二页的时候就会因为验证码超时报错了..
+        page = int(req.query_params.get('page', 0))
+        logger.debug(f"Requiring page {page}")
+        if page >= 2:
+            return True
+        # 跟google验证一下
+        async with ClientSession() as session:
+            kwargs = {
+                'method': "post",
+                'url': "https://www.google.com/recaptcha/api/siteverify", 
+                'params': {
+                    'secret': config.app['recaptcha_secret'],
+                    'response': recaptcha_token,
+                    'remoteip': request_ip
+                },
+            }
+            async with session.request(**kwargs) as res:
+                response = await res.json()
+                logger.debug(f"reCAPTCHA: {response}")
+                if res.ok and response.get('success', False):
+                    return True
+
+    # 如果都不对
+    raise HTTPException(
+        status_code=403,
+        detail=f"Token error."
+    )
+
+async def check_search(req: Request):
+    '发起搜索时检查Origin和token'
+    return (await check_origin(req)) and (await check_token(req))
+
 @app.get("/viewer/{mid}")
-async def get_viewer_mid(mid:int, page:int, req:Request):
+async def get_viewer_mid(mid:int, page:int, _check=Depends(check_search)):
     'MID -> 对应mid发送的弹幕'
-    header = req.headers
-    origin = header.get('Origin', None)
-    recaptcha_token = header.get('token', None)
-    if not origin or not recaptcha_token:
-        raise HTTPException(
-            status_code=422,
-            detail=f"No origin or recaptcha info!"
-        )
-    # 检查目标来源(这里没写反哦)
-    if not origin or config.app['safe_origin'] not in origin:
-        raise HTTPException(
-            status_code=403, 
-            detail=f"Request origin {origin} is not authorized."
-            )
     res_data = await matsuri.get_viewer_mid(mid, page)
     return res_data
 
 @app.get("/search/{danmaku}")
-async def get_search_danmaku(danmaku:str, page:int, req:Request):
+async def get_search_danmaku(danmaku:str, page:int, _check=Depends(check_search)):
     'danmaku -> 全局搜索到的弹幕'
-    header = req.headers
-    origin = header.get('Origin', None)
-    recaptcha_token = header.get('token', None)
-    if not origin or not recaptcha_token:
-        raise HTTPException(
-            status_code=422,
-            detail=f"No origin or recaptcha info!"
-        )
-    if not origin or config.app['safe_origin'] not in origin:
-        raise HTTPException(
-            status_code=403, 
-            detail=f"Request origin {origin} is not authorized."
-        )
     res_data = await matsuri.get_search_danmaku(danmaku, page)
     return res_data
 
