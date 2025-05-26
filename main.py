@@ -187,7 +187,7 @@ async def get_viewer_mid(mid:int, page:int, req:Request):
             status_code=403, 
             detail=f"Request origin {origin} is not authorized."
             )
-    res_data = await matsuri.get_viewer_mid(mid, page, recaptcha_token)
+    res_data = await matsuri.get_viewer_mid(mid, page)
     return res_data
 
 @app.get("/search/{danmaku}")
@@ -206,7 +206,7 @@ async def get_search_danmaku(danmaku:str, page:int, req:Request):
             status_code=403, 
             detail=f"Request origin {origin} is not authorized."
         )
-    res_data = await matsuri.get_search_danmaku(danmaku, page, recaptcha_token)
+    res_data = await matsuri.get_search_danmaku(danmaku, page)
     return res_data
 
 # Off Comments, 这个因为mid匹配的范围太广会覆盖其他路由，不能放前面
