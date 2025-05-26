@@ -174,8 +174,13 @@ async def get_clip_id_comments(id:str, res:Response):
 async def get_viewer_mid(mid:int, page:int, req:Request):
     'MID -> 对应mid发送的弹幕'
     header = req.headers
-    origin = header['Origin']
-    recaptcha_token = header['token']
+    origin = header.get('Origin', None)
+    recaptcha_token = header.get('token', None)
+    if not origin or not recaptcha_token:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No origin or recaptcha info!"
+        )
     # 检查目标来源(这里没写反哦)
     if not origin or config.app['safe_origin'] not in origin:
         raise HTTPException(
@@ -189,13 +194,19 @@ async def get_viewer_mid(mid:int, page:int, req:Request):
 async def get_search_danmaku(danmaku:str, page:int, req:Request):
     'danmaku -> 全局搜索到的弹幕'
     header = req.headers
-    origin = header['Origin'] if header else None
+    origin = header.get('Origin', None)
+    recaptcha_token = header.get('token', None)
+    if not origin or not recaptcha_token:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No origin or recaptcha info!"
+        )
     if not origin or config.app['safe_origin'] not in origin:
         raise HTTPException(
             status_code=403, 
             detail=f"Request origin {origin} is not authorized."
-            )
-    res_data = await matsuri.get_search_danmaku(danmaku, page)
+        )
+    res_data = await matsuri.get_search_danmaku(danmaku, page, recaptcha_token)
     return res_data
 
 # Off Comments, 这个因为mid匹配的范围太广会覆盖其他路由，不能放前面

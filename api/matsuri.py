@@ -219,10 +219,10 @@ async def get_search_danmaku(danmaku:str, page:int):
     '弹幕全局搜索'
     danmakus_list = await Comments.filter(
         text__contains=danmaku
-        ).order_by('-time').offset(30*(page-1)).limit(30).values(
+    ).all().order_by('-time').offset(30*(page-1)).limit(30).values(
         'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
         'gift_num', 'text', 'clip_id'
-        )
+    )
     # Page要-1，因为前端是从1开始算的
     return await (__get_final_list(danmakus_list))
 
@@ -233,11 +233,11 @@ async def get_viewer_mid(mid:int, page:int, recaptcha_token):
     # danmakus_info = await Comments.filter(user_id=mid).group_by('clip_id').order_by('time').only('clip_id').distinct().offset(10*page).limit(10).values('clip_id')
     # 太复杂了，直接取100条吧
     danmakus_info_list = await Comments.filter(
-        no_enter_message=False, user_id=mid
-        ).order_by('-time').offset(50*(page-1)).limit(50).values(
+        user_id=mid
+    ).all().order_by('-time').offset(50*(page-1)).limit(50).values(
         'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
         'gift_num', 'text', 'clip_id'
-        )
+    )
     return (await __get_final_list(danmakus_info_list))
 
 async def __get_final_list(danmakus_info_list):
@@ -252,7 +252,7 @@ async def __get_final_list(danmakus_info_list):
             danmakus_dict.setdefault(clip_id, [item])
     
     # 获取场次信息
-    logger.warning(f"{danmakus_dict}")
+    # logger.warning(f"{danmakus_dict}")
     final_list = []
     for clip_id in danmakus_dict.keys():
         # SELECT id, bilibili_uid, EXTRACT(EPOCH FROM start_time)*1000 AS start_time, 
