@@ -32,6 +32,10 @@ class AllComments(CommentsBaseModel):
     liver_uid = BigIntField()
     clip_id = CharField(max_length=36,null=True)
 
+class Subtitles(CommentsBaseModel):
+    '语音识别的字幕'
+    clip_id = CharField(max_length=36)
+
 class Comments(CommentsBaseModel):
     '正常弹幕'
     clip_id = CharField(max_length=36)

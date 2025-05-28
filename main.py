@@ -122,8 +122,7 @@ async def get_index():
         </style>
     </head>
     <body>
-        <h1 class="normal_text">恭喜你抓到了一只雅典娜叽！</h1>
-        <img class="image_container" alt="早稻叽" :src="https://i0.hdslb.com/bfs/new_dyn/f77d22df1ecd7e63033618a6f7816da51950658.jpg">
+        <h1 class="normal_text">你已经被标记了（盯……）</h1>
         <p class="normal_text">这个页面只是用来测试的，如果你找到了这里，那就说明你知道得太多了……</p>
     </body>
 </html>
@@ -167,7 +166,14 @@ async def get_clip_id(id:str):
 
 @app.get("/clip/{id}/comments")
 async def get_clip_id_comments(id:str, res:Response):
-    'Clip ID -> 所有弹幕(去除礼物)'
+    'Clip ID -> 所有弹幕(包括礼物)'
+    res_data = await matsuri.get_clip_id_comments(id)
+    res.headers['Cache-Control'] = 'max-age=31536000'
+    return res_data
+
+@app.get("/clip/{id}/subtitles")
+async def get_clip_id_subtitles(id:str, res:Response):
+    'Clip ID -> 该场直播的语音识别字幕'
     res_data = await matsuri.get_clip_id_comments(id)
     res.headers['Cache-Control'] = 'max-age=31536000'
     return res_data

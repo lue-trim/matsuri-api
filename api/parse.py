@@ -365,8 +365,26 @@ def highlight_parse(plain_danmakus_list:list):
             summary_list[idx][key] = danmakus_seg.count(key)
     return summary_list
 
-def get_danmakus_info(data):
+def subtitles_parse(videoname):
+    '解析自动语音识别的字幕'
+    if not call_stt():
+        return
+
+    # 开启输出文件
+    output_filename = config.app['stt_output']
+    with open(output_filename, encoding='utf-8') as f:
+        file_content = f.read()
+
+    # 正则匹配
+    pattern = re.compile(r"(\d+)\n(\d+:\d+:\d+,\d+) --> (\d+:\d+:\d+,\d+)\n(.+?)\n\n")
+    matches = re.findall(pattern, file_content, flags=re.DOTALL)
+
+def get_danmakus_info(**kwargs):
     '从原始弹幕文件结束的webhook信息和具体文件中提取信息'
+    data = kwargs['data']
+    danmakus_only = kwargs.get('danmakus_only', False)
+    subtitles_only = kwargs.get('subtitles_only', False)
+
     # webhook消息
     jsonl_path = data['data']['path']
     end_time = date1_to_time(data['date'])
