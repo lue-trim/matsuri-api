@@ -104,14 +104,15 @@ async def get_clip_id_comments(clip_id):
     # EXTRACT(EPOCH FROM "time")*1000 as time, username, user_id, superchat_price, 
     # gift_name, gift_price, gift_num, "text" 
     # FROM all_comments WHERE clip_id = $1 ORDER BY "time"', [id])
-    danmakus = await Comments.filter(clip_id=clip_id).all().order_by("time").values(
+    danmakus = await Comments.filter(clip_id=clip_id).all().values(
         'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
         'gift_num', "text"
     )
-    subtitles = await Subtitles.filter(clip_id=clip_id).all().order_by("time").values(
+    subtitles = await Subtitles.filter(clip_id=clip_id).all().values(
         'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
         'gift_num', "text"
     )
+    danmakus.extend(subtitles)
 
     # 处理数据库返回的信息
     for idx, danmaku in enumerate(danmakus):
