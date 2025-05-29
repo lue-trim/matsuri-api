@@ -98,3 +98,6 @@ class ClipInfo(Model):
     class Meta:
         ordering = ['-start_time']
         indexes = ['clip_id']
+
+def __test():
+    ClipInfo.get

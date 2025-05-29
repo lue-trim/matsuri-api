@@ -1,21 +1,25 @@
 from loguru import logger
 
 from typing import Annotated
-from aiohttp import ClientSession
+from ipaddress import ip_address
+from pydantic import BaseModel
+from uuid import UUID
+
 from fastapi import FastAPI, Header, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
-from ipaddress import ip_address
+
 import uvicorn
-from pydantic import BaseModel
-from tortoise import run_async
-from uuid import UUID
+from contextlib import asynccontextmanager
+from aiohttp import ClientSession
 
 import db
 from static import config
 from api import matsuri, blrec
-from subtitle.utils import add_subtitles, add_subtitles_all
 from db.models import *
+
+import subtitle
+from subtitle.utils import add_subtitles, add_subtitles_all
 
 class BlrecWebhookData(BaseModel):
     'BLREC Webhook的数据格式'
@@ -24,7 +28,20 @@ class BlrecWebhookData(BaseModel):
     type: str
     data: dict
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(_app):
+    '生命周期管理'
+    config.load()
+    scheduler = await subtitle.init()
+    await db.init_db()
+
+    yield
+
+    await db.close()
+    scheduler.shutdown()
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -274,7 +291,4 @@ async def get_mid_date(mid:int, date:str):
     return res_data
 
 if __name__ == "__main__":
-    config.load()
-    run_async(db.init_db())
     uvicorn.run(app=app, host=config.app['host'], port=config.app['port'])
-    run_async(db.close())

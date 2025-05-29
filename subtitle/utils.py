@@ -4,8 +4,10 @@ from bilibili_api.video import Video
 from bilibili_api.user import User
 from bilibili_api import Credential
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from loguru import logger
+
+from tortoise.exceptions import MultipleObjectsReturned, DoesNotExist
 
 from static import config
 from db.models import Subtitles, ClipInfo
@@ -37,7 +39,7 @@ async def get_video_info(v:Video):
         subtitle_url = subtitle_info['subtitles'][0]['subtitle_url']
 
         # 发起请求
-        async with ClientSession() as session:
+        async with ClientSession(timeout=ClientTimeout(None)) as session:
             url = f"https:{subtitle_url}"
             async with session.get(url) as req:
                 res = await req.json()
@@ -67,22 +69,30 @@ async def get_video_series(uid:int, sid:int, pn:int, ps=10):
 
 async def pair_clip(clip:dict, video_series:list):
     '将回放视频与弹幕站的片段进行匹配'
+    # time_title = clip['start_time'].strftime(r"%Y年%m月%d日%H点场")
     clip_title = generate_title(clip['title'], clip['start_time'])
+
+    # 只匹配时间容易出现同一个小时开两场不好判断的问题
     for archive in video_series:
+        # if time_title in archive['title']:
         if clip_title == archive['title']:
+            bvid = archive['bvid']
+            logger.debug(f"Clip {clip['clip_id']} matched {bvid}")
             clip.update({
-                "bvid": archive['bvid']
+                "bvid": bvid
             })
             return clip
     else:
-        logger.warning(f"No paired video for clip {clip['clip_id']}")
+        logger.warning(f"No paired for clip {clip['clip_id']} -> {clip_title}")
 
 def generate_title(title:str, t):
     '生成官方录播风格的标题'
     if type(t) is str:
         format_t = t
     elif type(t) is datetime.datetime:
-        format_t = t.strftime(r"%Y年%m月%d日%H点场")
+        tz = datetime.datetime.now().tzinfo
+        local_t = datetime.datetime.fromtimestamp(t.timestamp(), tz=tz)
+        format_t = local_t.strftime(r"%Y年%m月%d日%H点场")
     else:
         logger.error(f"Invalid time format {type(t)}")
         return
@@ -140,12 +150,12 @@ async def add_subtitles(**subtitle_config):
     '给单个clip添加字幕'
     # 从config读取
     clip = subtitle_config.get('clip', None)
-    clip_id = subtitle_config.get('clip_id', None)
+    clip_id = subtitle_config.get('clip_id', clip['clip_id'])
     bvid = subtitle_config.get('bvid', None)
     video_series = subtitle_config.get('video_series', None)
 
     # 如果只指定了id而没有指定clip
-    if clip_id:
+    if not clip:
         clip = await ClipInfo.get(clip_id=clip_id).values(
             'start_time', 'title', 'clip_id'
         )
@@ -156,6 +166,8 @@ async def add_subtitles(**subtitle_config):
         paired_clip.update({'bvid': bvid})
     else:
         paired_clip = await pair_clip(clip=clip, video_series=video_series)
+        if not paired_clip:
+            return
 
     # 获取视频信息和对应字幕
     c = await get_credential()
@@ -165,35 +177,53 @@ async def add_subtitles(**subtitle_config):
     except Exception as e:
         logger.error(f"Get subtitle error: {traceback.format_exc()}")
         return
-    subtitle_list = await subtitle_parse(clip_id=paired_clip['clip_id'], **video_info)
+    subtitle_list = await subtitle_parse(clip_id=clip_id, **video_info)
 
     # 上传字幕
     await Subtitles.bulk_create(subtitle_list)
+    logger.info(f"Added subtitle for clip {clip_id}")
 
 async def add_subtitles_all(forced=False):
     '添加字幕'
     # 读取配置
-    subtitle_config_list = config.subtitle['config']
+    subtitle_config_list = config.subtitle.get('config', [])
     for subtitle_config in subtitle_config_list:
         uid = subtitle_config['uid']
         sid = subtitle_config['sid']
         max_videos = subtitle_config['max_videos']
 
         # 获取最近的clip列表
-        clip_list = await ClipInfo.all().order_by("-start_time").limit(max_videos).values(
+        clip_list = await ClipInfo.filter(
+            bilibili_uid=uid
+        ).all().order_by("-start_time").limit(max_videos).values(
             'start_time', 'title', 'clip_id'
         )
 
         # 先去除已经有了字幕的片段
-        for clip in clip_list:
-            if not forced and await Subtitles.exists(clip_id=clip['clip_id']):
-                clip_list.remove(clip)
-        if not clip_list:
+        if forced:
+            new_clip_list = clip_list
+        else:
+            new_clip_list = []
+            for clip in clip_list:
+                try:
+                    await Subtitles.get(clip_id=clip['clip_id'])
+                except MultipleObjectsReturned:
+                    is_exist = True
+                except DoesNotExist:
+                    is_exist = False
+                else:
+                    is_exist = True
+                if not is_exist:
+                    logger.debug(f"Adding clip {clip['clip_id']}..")
+                    new_clip_list.append(clip)
+        if not new_clip_list:
+            logger.debug(f"All of {max_videos} clips have substitles.")
             return
 
         # 获取最近的官方录播合集
         video_series = await get_video_series(uid=uid, sid=sid, pn=1, ps=max_videos)
 
         # 开始添加
-        for clip in clip_list:
+        for clip in new_clip_list:
+            logger.debug(f"Searching for clip {clip['clip_id']} in {len(video_series)} videos")
             await add_subtitles(clip=clip, video_series=video_series)
