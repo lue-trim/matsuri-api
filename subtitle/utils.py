@@ -36,22 +36,26 @@ async def get_video_info(v:Video):
         # 获取URL
         cid = page['cid']
         subtitle_info = await v.get_subtitle(cid)
-        subtitle_url = subtitle_info['subtitles'][0]['subtitle_url']
+        page_subtitle_list = subtitle_info['subtitles']
 
-        # 发起请求
-        async with ClientSession(timeout=ClientTimeout(None)) as session:
-            url = f"https:{subtitle_url}"
-            async with session.get(url) as req:
-                res = await req.json()
+        # 确认是否存在字幕
+        if page_subtitle_list:
+            subtitle_url = page_subtitle_list[0]['subtitle_url']
 
-        # 处理每条字幕的时间
-        page_subtitles = res['body']
-        for idx, subtitle in enumerate(page_subtitles):
-            page_subtitles[idx]['from'] = subtitle['from'] + current_duration
-            page_subtitles[idx]['to'] = subtitle['to'] + current_duration
+            # 发起请求
+            async with ClientSession(timeout=ClientTimeout(None)) as session:
+                url = f"https:{subtitle_url}"
+                async with session.get(url) as req:
+                    res = await req.json()
 
-        # 处理列表
-        subtitle_list.extend(page_subtitles)
+            # 处理每条字幕的时间
+            page_subtitles = res['body']
+            for idx, subtitle in enumerate(page_subtitles):
+                page_subtitles[idx]['from'] = subtitle['from'] + current_duration
+                page_subtitles[idx]['to'] = subtitle['to'] + current_duration
+
+            # 处理列表
+            subtitle_list.extend(page_subtitles)
         current_duration += page['duration']
 
     return {
