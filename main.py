@@ -55,7 +55,8 @@ async def rec_handle(data: BlrecWebhookData, ip_check=Depends(check_ip)):
     if event_type == "LiveBeganEvent":
         # 录制开始
         await blrec.start_clip(data)
-    elif event_type == "LiveEndedEvent":
+    elif event_type in ("LiveEndedEvent", "RecordingFinishedEvent"):
+        # 添加一个Recording Finished, 防止出现断了推流但没下播导致的更新延迟
         # 录制结束
         await blrec.end_clip(data)
     elif event_type == "RawDanmakuFileCompletedEvent":

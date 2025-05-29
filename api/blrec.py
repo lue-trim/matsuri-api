@@ -1,7 +1,7 @@
 'blrec相关API'
 import functools
 from loguru import logger
-from db.models import *
+from db.models import ClipInfo, Channels, Comments
 #from static import config
 from .parse import get_danmakus_info, get_room_info, get_uuid, float_to_decimal
 
@@ -31,18 +31,22 @@ async def update_user(data, is_live):
     # 提取频道信息
     room_id = data['data']['room_info']['room_id']
     channel_info = {
-        'name': data['data']['user_info']['name'],
         'bilibili_uid': uid,
         'bilibili_live_room': room_id,
         'is_live': is_live,
         'last_danmu': last_danmu,
         'total_clips': total_clip,
         'total_danmu': total_danmu,
-        'face': data['data']['user_info']['face'],
         'last_live': last_live,
         'hidden': False,
         'archive': False
     }
+    if not data['data'].get('user_info', None):
+        # 如果是RecordingFinishedEvent就没有user_info这一项, 暂不更新
+        channel_info.update({
+            'name': data['data']['user_info']['name'],
+            'face': data['data']['user_info']['face'],
+        })
 
     # 更新或者创建
     channel = await Channels.get_or_none(bilibili_live_room = room_id)
