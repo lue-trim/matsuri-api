@@ -1,5 +1,6 @@
-import datetime, json, os, re, requests, uuid
+import datetime, json, os, re, uuid
 import xml.etree.ElementTree as ET
+from aiohttp import ClientSession
 from loguru import logger
 from db.models import ClipInfo, Comments
 from static import config
@@ -45,11 +46,33 @@ async def get_room_info(room_id):
     '从blrec获取房间信息'
     host = config.app['blrec_url']
     url = f"{host}/api/v1/tasks/{room_id}/data"
-    res = requests.get(url)
-    try:
-        return res.json()
-    except Exception as e:
-        logger.error(f"Cannot connect to blrec:{e.with_traceback()}")
+    async with ClientSession() as session:
+        async with session.get(url=url) as req:
+            res = await req.json()
+        return res
+
+async def get_cookies():
+    '从blrec获取cookies'
+    host = config.app['blrec_url']
+    url = f"{host}/api/v1/settings"
+    headers = {
+        'content-type': 'application/json', 
+        }
+    params = {
+        'include': 'header'
+        }
+    async with ClientSession() as session:
+        async with session.get(url=url, headers=headers, params=params) as req:
+            res = await req.json()
+    cookies_str = res['header']['cookie']
+
+    # 分割参数
+    if cookies_str.endswith(';'):
+        cookies_str = cookies_str[:-1]
+    cookies_strs = cookies_str.split(';')
+    cookies_dict = {i.split('=')[0].lower():i.split('=')[1] for i in cookies_strs}
+
+    return cookies_dict
 
 def xml_get(patt, s):
     '用于xml字段的正则表达式匹配'
@@ -365,19 +388,15 @@ def highlight_parse(plain_danmakus_list:list):
             summary_list[idx][key] = danmakus_seg.count(key)
     return summary_list
 
-def subtitles_parse(videoname):
+def subtitles_parse(filename):
     '解析自动语音识别的字幕'
-    if not call_stt():
-        return
-
     # 开启输出文件
-    output_filename = config.app['stt_output']
-    with open(output_filename, encoding='utf-8') as f:
+    with open(filename, encoding='utf-8') as f:
         file_content = f.read()
 
     # 正则匹配
     pattern = re.compile(r"(\d+)\n(\d+:\d+:\d+,\d+) --> (\d+:\d+:\d+,\d+)\n(.+?)\n\n")
-    matches = re.findall(pattern, file_content, flags=re.DOTALL)
+    matches = re.findall(pattern, file_content)
 
 def get_danmakus_info(**kwargs):
     '从原始弹幕文件结束的webhook信息和具体文件中提取信息'

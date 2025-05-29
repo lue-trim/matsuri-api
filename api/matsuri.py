@@ -2,7 +2,7 @@
 import datetime
 from loguru import logger
 from tortoise.exceptions import DoesNotExist
-from db.models import *
+from db.models import ClipInfo, Comments, OffComments, Subtitles, Channels
 #from ..static import config
 from .parse import get_room_info, date_to_mili_timestamp, highlight_parse, float_to_decimal
 
@@ -105,6 +105,10 @@ async def get_clip_id_comments(clip_id):
     # gift_name, gift_price, gift_num, "text" 
     # FROM all_comments WHERE clip_id = $1 ORDER BY "time"', [id])
     danmakus = await Comments.filter(clip_id=clip_id).all().order_by("time").values(
+        'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+        'gift_num', "text"
+    )
+    subtitles = await Subtitles.filter(clip_id=clip_id).all().order_by("time").values(
         'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
         'gift_num', "text"
     )

@@ -1,21 +1,42 @@
-import os, sys, requests, getopt, datetime, uuid, json
+import os, argparse, datetime, uuid, json
 from loguru import logger
+from aiohttp import ClientSession, ClientTimeout
+import asyncio
 
 from api import parse
 from static import config
 
-def send_matsuri(data="", params="", api_path="/"):
+async def send_matsuri(data="", params="", api_path="/"):
     '向服务端发送'
+    headers = {
+            'Content-Type': 'application/json'
+    }
     host = config.app['host']
     port = config.app['port']
     #prefix = "https" if config.app['https'] else "http"
     prefix = "http"
     url = f"{prefix}://{host}:{port}{api_path}"
-    res = requests.post(url, data=json.dumps(data), params=json.dumps(params))
-    if res:
-        return res.json()
+
+    # 发起请求
+    async with ClientSession(timeout=ClientTimeout(None)) as session:
+        async with session.post(url=url, data=data, params=params, headers=headers) as req:
+            res = await req.json()
+            # res = requests.post(url, data=json.dumps(data), params=json.dumps(params))
+            if not req.ok:
+                logger.error(f"Server Error: {req}")
+
+    return res
+
+def update_subtitle(is_all=True, bvid="", clip_id=""):
+    '更新语音识别字幕'
+    if is_all:
+        asyncio.run(send_matsuri(api_path="/subtitle/update/all"))
     else:
-        logger.error(f"Server Error: {res}")
+        params = {
+            'bvid': bvid,
+            'clip_id': clip_id
+        }
+        asyncio.run(send_matsuri(params=params, api_path="/subtitle/update"))
 
 def find_danmaku_file(path):
     '寻找blrec弹幕文件'
@@ -69,7 +90,7 @@ def update_danmakus(search_path):
             }
         }
         # 发送请求
-        send_matsuri(data=data, api_path="/rec")
+        asyncio.run(send_matsuri(data=data, api_path="/rec"))
 
 def update_channel(room_id):
     '更新直播间信息'
@@ -98,17 +119,17 @@ def update_channel(room_id):
         }
 
     # 发送
-    send_matsuri(data=data, api_path="/rec")
+    asyncio.run(send_matsuri(data=data, api_path="/rec"))
 
 def update_clip(clip_id):
     '更新场次信息'
     logger.info(f"Updating clip {clip_id}..")
-    send_matsuri(api_path=f"/refresh/clip/{clip_id}")
+    asyncio.run(send_matsuri(api_path=f"/refresh/clip/{clip_id}"))
 
 def delete_clip(clip_id):
     '删除场次和弹幕'
     logger.info(f"Deleting clip {clip_id}..")
-    send_matsuri(api_path=f"/delete/clip/{clip_id}")
+    asyncio.run(send_matsuri(api_path=f"/delete/clip/{clip_id}"))
 
 def usage():
     '--help'
@@ -128,47 +149,61 @@ Options:
 \tpath:\t包含场次和弹幕信息的jsonl文件所在文件夹(子文件夹也会被识别)
 -a / --channel <room_id>:\t更新直播间信息
 \troom_id:\t直播间号(不支持短号)
+-s / --subtitle <room_id>:\t更新直播间信息
+\troom_id:\t直播间号(不支持短号)
 """)
     quit()
+
+def __add(args):
+    '添加'
+    if args.danmaku:
+        update_danmakus(args.danmaku)
+    if args.subtitle:
+        update_subtitle(is_all=args.all, bvid=args.bvid, clip_id=args.clip)
+
+def __refresh(args):
+    '刷新'
+    if args.room:
+        update_channel(args.room)
+    if args.clip:
+        update_clip(args.clip)
+
+def __del(args):
+    '删除'
+    if args.clip:
+        delete_clip(args.clip)
 
 def main():
     'main'
     config_path = "config.toml"
-    search_path = ""
-    room_id = ""
-    del_clip_id = ""
-    ref_clip_id = ""
     config.load(config_path)
 
     # 解析参数
-    options, args = getopt.getopt(
-        sys.argv[1:], 
-        "hd:c:a:u:r:", 
-        ["help", "upload=", "channel=", "config=", "delete=", "refresh="]
-        )
-    for name, value in options:
-        if name in ("-h","--help"):
-            usage()
-            quit()
-        elif name in ("-c", "--config"):
-            config_path = value
-        elif name in ("-u", "--upload"):
-            search_path = value
-        elif name in ("-a", "--channel"):
-            room_id = value
-        elif name in ("-d", "--delete"):
-            del_clip_id = value
-        elif name in ("-r", "--refresh"):
-            ref_clip_id = value
+    p = argparse.ArgumentParser()
+    # p.add_argument("subcommand", help="子命令", choices=['add', 'del', 'refresh'], required=True)
+    sp = p.add_subparsers(title="subcommand")
 
-    if search_path:
-        update_danmakus(search_path)
-    if room_id:
-        update_channel(room_id)
-    if del_clip_id:
-        delete_clip(clip_id=del_clip_id)
-    if ref_clip_id:
-        update_clip(clip_id=ref_clip_id)
+    p_add = sp.add_parser("add", help="上传")
+    p_add.add_argument("-d", "--danmaku", help="弹幕文件所在文件夹", default="")
+    p_add.add_argument("-s", "--subtitle", help="上传字幕", action="store_true")
+    p_add.add_argument("--all", help="(subtitle)模拟周期性自动识别并上传字幕", action="store_true")
+    p_add.add_argument("--clip", help="(subtitle)要上传到的录播站场次id", default="")
+    p_add.add_argument("--bvid", help="(subtitle)官方录播的BV号('BV'不能省略)", default="")
+    p_add.set_defaults(func=__add)
+
+    p_del = sp.add_parser("del", help="删除")
+    p_del.add_argument("--clip", help="弹幕对应的录播站场次ID", required=True)
+    p_del.set_defaults(func=__del)
+
+    p_ref = sp.add_parser("refresh", help="刷新")
+    p_ref.add_argument("--clip", help="场次id")
+    p_ref.add_argument("--room", help="直播间id", default=0, type=int)
+    p_ref.set_defaults(func=__refresh)
+
+    p.add_argument("-c", "--config", help="指定配置文件", default="")
+
+    args = p.parse_args()
+    args.func(args)
 
 if __name__ == "__main__":
     main()

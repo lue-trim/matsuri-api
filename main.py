@@ -4,7 +4,7 @@ from typing import Annotated
 from aiohttp import ClientSession
 from fastapi import FastAPI, Header, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from ipaddress import ip_address
 import uvicorn
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ from uuid import UUID
 import db
 from static import config
 from api import matsuri, blrec
+from subtitle.utils import add_subtitles, add_subtitles_all
 from db.models import *
 
 class BlrecWebhookData(BaseModel):
@@ -82,6 +83,20 @@ async def delete_clip(clip_id: UUID, ip_check=Depends(check_ip)):
         return res_data
     else:
         raise HTTPException(status_code=404, detail="Clip not found.")
+
+
+### 字幕更新相关
+@app.post("/subtitle/update")
+async def update_subtitles(clip_id:str, bvid:str, _check=Depends(check_ip)):
+    '手动更新字幕'
+    await add_subtitles(clip_id=clip_id, bvid=bvid)
+    return JSONResponse(content={})
+
+@app.post("/subtitle/update/all")
+async def update_all_subtitles(forced=False, _check=Depends(check_ip)):
+    '自动更新字幕'
+    await add_subtitles_all(forced=forced)
+    return JSONResponse(content={})
 
 
 ### Matsuri前端API

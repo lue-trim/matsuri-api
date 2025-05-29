@@ -6,6 +6,13 @@ allow_origin_list = ['luetrim.top', 'lue-trim.github.io'] # 访问/views时限�
 blrec_url = "http://127.0.0.1:2233"
 allow_post_ips = ['127.0.0.1'] # 只有列表里的IP地址可以发送post请求
 
+[subtitle]
+check_interval = 43200 # 自动检查间隔，单位为s
+[[subtitle.config]] # 可以填写多个
+uid = 1950658 # B站UID
+sid = 210077 # 录播所在合集的season_id(可以从浏览器地址栏获取)
+max_videos = 10 # 最大尝试匹配视频数(即只有合集的前n个视频会被自动匹配)
+
 [postgres]
 host = "127.0.0.1"
 port = 63154
