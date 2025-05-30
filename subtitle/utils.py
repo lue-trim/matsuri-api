@@ -154,12 +154,15 @@ async def add_subtitles(**subtitle_config):
     '给单个clip添加字幕'
     # 从config读取
     clip = subtitle_config.get('clip', None)
-    clip_id = subtitle_config.get('clip_id', clip['clip_id'])
+    clip_id = subtitle_config.get('clip_id', None)
     bvid = subtitle_config.get('bvid', None)
     video_series = subtitle_config.get('video_series', None)
 
-    # 如果只指定了id而没有指定clip
-    if not clip:
+    # 处理只有clip_id/只有clip参数的情况
+    # 如果都给了那clip_id更优先
+    if clip and not clip_id:
+        clip_id = clip['clip_id']
+    elif not clip:
         clip = await ClipInfo.get(clip_id=clip_id).values(
             'start_time', 'title', 'clip_id'
         )
