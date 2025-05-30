@@ -23,7 +23,9 @@ async def send_matsuri(data="", params="", api_path="/"):
             res = await req.json()
             # res = requests.post(url, data=json.dumps(data), params=json.dumps(params))
             if not req.ok:
-                logger.error(f"Server Error: {req}")
+                print(f"Server Error: {res}")
+            else:
+                print(f"Success - {url}")
 
     return res
 
@@ -90,7 +92,7 @@ def update_danmakus(search_path):
             }
         }
         # 发送请求
-        asyncio.run(send_matsuri(data=data, api_path="/rec"))
+        asyncio.run(send_matsuri(data=json.dumps(data), api_path="/rec"))
 
 def update_channel(room_id):
     '更新直播间信息'

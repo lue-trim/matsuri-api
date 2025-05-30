@@ -31,15 +31,11 @@ async def update_user(data, is_live):
     # 提取频道信息
     room_id = data['data']['room_info']['room_id']
     channel_info = {
-        'bilibili_uid': uid,
-        'bilibili_live_room': room_id,
         'is_live': is_live,
         'last_danmu': last_danmu,
         'total_clips': total_clip,
         'total_danmu': total_danmu,
         'last_live': last_live,
-        'hidden': False,
-        'archive': False
     }
     if not data['data'].get('user_info', None):
         # 如果是RecordingFinishedEvent就没有user_info这一项, 暂不更新
@@ -54,6 +50,12 @@ async def update_user(data, is_live):
         channel_info['hidden'] = channel.hidden
         await Channels.filter(bilibili_live_room = room_id).update(**channel_info)
     else:
+        channel_info.update({
+            'bilibili_uid': uid,
+            'bilibili_live_room': room_id,
+            'hidden': False,
+            'archive': False,
+        })
         await Channels.create(**channel_info)
 
 async def start_clip(data):
