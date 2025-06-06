@@ -1,6 +1,8 @@
 'blrec相关API'
 import functools
 from loguru import logger
+from tortoise.exceptions import MultipleObjectsReturned
+
 from db.models import ClipInfo, Channels, Comments
 #from static import config
 from .parse import get_danmakus_info, get_room_info, get_uuid, float_to_decimal
@@ -37,7 +39,7 @@ async def update_user(data, is_live):
         'total_danmu': total_danmu,
         'last_live': last_live,
     }
-    if not data['data'].get('user_info', None):
+    if data['data'].get('user_info', None) is not None:
         # 如果是RecordingFinishedEvent就没有user_info这一项, 暂不更新
         channel_info.update({
             'name': data['data']['user_info']['name'],
@@ -101,7 +103,10 @@ async def update_clip(data):
 
     # 检查是不是这段已经上传过了
     d = danmakus_info['last_danmaku']
-    is_duplicate = await Comments.get_or_none(**d) is not None
+    try:
+        is_duplicate = await Comments.get_or_none(**d) is not None
+    except MultipleObjectsReturned:
+        is_duplicate = True
     if d == {}:
         # 弹幕为空
         logger.warning(f"No danmakus found in {filename}, skipping...")

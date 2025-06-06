@@ -71,7 +71,9 @@ def update_danmakus(search_path):
             try:
                 xml_info = parse.xml_parse(f.read(2000))
             except TypeError:
-                logger.warning(f"解析失败, 正在跳过: {xml_path}")
+                msg = f"解析失败, 正在跳过: {xml_path}"
+                print(msg)
+                logger.warning(msg)
         room_id = xml_info['room_id']
         # start_time = xml_info['live_start_time']
         end_time = datetime.datetime.fromtimestamp(os.path.getmtime(xml_path))
@@ -96,7 +98,9 @@ def update_danmakus(search_path):
 
 def update_channel(room_id):
     '更新直播间信息'
-    logger.info(f"Updating channel {room_id}..")
+    msg = f"Updating channel {room_id}.."
+    print(msg)
+    logger.info(msg)
 
     # 先向blrec问个信息
     host = config.app['blrec_url']
@@ -106,6 +110,7 @@ def update_channel(room_id):
     if res:
         blrec_data = res.json()
     else:
+        print("更新失败")
         logger.error(f"Blrec returned an error: {res}")
         return
 
