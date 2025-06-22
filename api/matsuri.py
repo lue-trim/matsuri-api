@@ -95,6 +95,11 @@ async def get_clip_id(clip_id):
         'highlights': clip_info.highlights,
         'views': clip_info.viewers
     }
+
+    # 处理没有收录highlights的情况
+    if not data['highlights']:
+        data.pop('highlights')
+
     return {
         'status': 0, 'data': data
     }

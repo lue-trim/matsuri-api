@@ -36,6 +36,8 @@ async def get_video_info(v:Video):
         # 获取URL
         cid = page['cid']
         subtitle_info = await v.get_subtitle(cid)
+        if not subtitle_info: # 确认是否存在字幕元信息
+            continue
         page_subtitle_list = subtitle_info['subtitles']
 
         # 确认是否存在字幕
