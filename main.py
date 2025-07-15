@@ -157,13 +157,14 @@ async def get_index():
     <body>
         <h1 class="normal_text">你已经被标记了（盯……）</h1>
         <p class="normal_text">这个页面只是用来测试的，如果你找到了这里，那就说明你知道得太多了……</p>
+        <p class="normal_text"><a href="//beian.miit.gov.cn">桂ICP备2025066596号</a></p>
     </body>
 </html>
 """
     return res_data
 
 # Channel
-@app.get("/channel/")
+@app.get("/channel")
 async def get_channel():
     '-> 所有频道'
     res_data = await matsuri.get_channel_list()
