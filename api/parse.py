@@ -234,6 +234,10 @@ def jsonl_parse(file_content, clip_id):
         #     summary["danmakus"].append(Comments(**info))
         elif cmd == "DANMU_MSG":
             # 普通弹幕
+            if not js.get("info", None):
+                # 前RECALL_DANMU_MSG没有info字段
+                continue
+            # 正常解析
             medal_guard_info = js['info'][3]
             if medal_guard_info:
                 medal_name = medal_guard_info[1]
