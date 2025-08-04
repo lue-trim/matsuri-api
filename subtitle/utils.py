@@ -113,7 +113,10 @@ async def subtitle_parse(**kwargs):
     uid = kwargs['uid']
 
     # 获取开播时间
-    start_time_ms = (await get_clip_id(clip_id))['data']['start_time']
+    clip_info = await get_clip_id(clip_id)
+    if clip_info is None:
+        raise FileNotFoundError("No such clip_id")
+    start_time_ms = clip_info['data']['start_time']
     start_time = timestamp_to_date(start_time_ms, ms=True)
 
     # 构建翻译man弹幕
@@ -129,10 +132,7 @@ async def subtitle_parse(**kwargs):
         # }
         time = relative_ts_to_time(subtitle['from'], start_time)
         content = subtitle['content']
-        if subtitle['music'] > 0.2:
-            text = f"♪: 【{content}】"
-        else:
-            text = f"主播: 【{content}】"
+        text = f"主播: 【{content}】"
         info = {
             "clip_id": clip_id,
             "time": time,
