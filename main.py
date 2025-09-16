@@ -243,7 +243,7 @@ async def check_token(req: Request):
         # 不然获取第二页的时候就会因为验证码超时报错了..
         page = int(req.query_params.get('page', 0))
         logger.debug(f"Requiring page {page}")
-        if page >= 2:
+        if page >= 1:
             return True
         # 跟google验证一下
         async with ClientSession() as session:

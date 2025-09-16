@@ -243,7 +243,7 @@ async def get_search_advanced(data:dict):
     if data['endTime']:
         end_time = datetime.datetime.fromisoformat(data['endTime'])
         args.update({'time__lt': end_time})
-    page = data['page']
+    page = data['page'] if data['page'] > 0 else 1 # 与google的验证机制配合，只有获取第0页时需要校验
     page_size = data['pageSize']
 
     # 查询总数
