@@ -1,5 +1,5 @@
 '处理Matsuri API'
-import datetime
+import datetime, math
 from loguru import logger
 from tortoise.exceptions import DoesNotExist
 from db.models import ClipInfo, Comments, OffComments, Subtitles, Channels
@@ -227,6 +227,58 @@ async def get_mid_date(mid:int, date:str):
 
 
 ### Viewer
+async def get_search_advanced(data:dict):
+    '高级搜索'
+    # 构建请求体
+    args = {
+        'text__contains': data['keyword']
+    }
+
+    # 提取参数
+    is_get_danmaku = data['type'] in ('all', 'danmaku')
+    is_get_subtitle = data['type'] in ('all', 'subtitle')
+    if data['startTime']:
+        start_time = datetime.datetime.fromisoformat(data['startTime'])
+        args.update({'time__gt': start_time})
+    if data['endTime']:
+        end_time = datetime.datetime.fromisoformat(data['endTime'])
+        args.update({'time__lt': end_time})
+    page = data['page']
+    page_size = data['pageSize']
+
+    # 查询总数
+    total_items = 0
+    if is_get_danmaku:
+        total_items += await Comments.filter(**args).count()
+    if is_get_subtitle:
+        total_items += await Subtitles.filter(**args).count()
+    total_pages = math.ceil(total_items/page_size)
+
+    # 查询具体内容
+    danmakus_list = []
+    if is_get_danmaku:
+        danmakus_list.extend(
+            await Comments.filter(
+                **args
+            ).all().order_by('-time').offset(page_size*(page-1)).limit(page_size).values(
+                'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+                'gift_num', 'text', 'clip_id'
+            )
+        ) # Page要-1，因为前端是从1开始算的
+    if is_get_subtitle:
+        danmakus_list.extend(
+            await Subtitles.filter(
+                **args
+            ).all().order_by('-time').offset(page_size*(page-1)).limit(page_size).values(
+                'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+                'gift_num', 'text', 'clip_id'
+            )
+        )
+
+    return await (__get_final_list(
+        danmakus_list, version=2, page=page, total_pages=total_pages
+        ))
+
 async def get_search_danmaku(danmaku:str, page:int):
     '弹幕全局搜索'
     danmakus_list = await Comments.filter(
@@ -252,10 +304,14 @@ async def get_viewer_mid(mid:int, page:int):
     )
     return (await __get_final_list(danmakus_info_list))
 
-async def __get_final_list(danmakus_info_list):
+async def __get_final_list(danmakus_info_list, version=1, page=0, total_pages=0):
     '统一处理返回值'
+    # 排序
+    danmakus_info_list_sorted = sorted(danmakus_info_list, key=lambda x:-x['time'].timestamp())
+
+    # 建立dict
     danmakus_dict = {}
-    for item in danmakus_info_list:
+    for item in danmakus_info_list_sorted:
         clip_id = item.get('clip_id', None)
         clip_item = danmakus_dict.get(clip_id, None)
         if clip_item:
@@ -305,6 +361,18 @@ async def __get_final_list(danmakus_info_list):
         })
 
     # 返回值
-    return {
-        'status': 0, 'data': final_list
-    }
+    if version == 1:
+        return {
+            'status': 0, 'data': final_list
+        }
+    elif version == 2:
+        return {
+            'success': True,
+            'message': '',
+            'pagination': {
+                'totalItems': len(final_list),
+                'totalPages': total_pages,
+                'currentPage': page,
+            },
+            'data': final_list
+        }

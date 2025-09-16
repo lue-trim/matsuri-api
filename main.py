@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
-import uvicorn
+import uvicorn, json, traceback
 from contextlib import asynccontextmanager
 from aiohttp import ClientSession
 
@@ -27,6 +27,16 @@ class BlrecWebhookData(BaseModel):
     date: str
     type: str
     data: dict
+
+class SearchRequestData(BaseModel):
+    '高级搜索查询体数据格式'
+    # token: str
+    keyword: str
+    type: str
+    startTime: Annotated[str, None]
+    endTime: Annotated[str, None]
+    page: int       # 传递页码
+    pageSize: int # 传递每页大小
 
 
 @asynccontextmanager
@@ -132,16 +142,6 @@ async def get_index():
             ::selection {
                 background: #80abff80;
             }
-            @font-face {
-                font-family: "阿里巴巴普惠体 2.0 65 Medium";
-                font-weight: 400;
-                src: url("https://cdn.jsdelivr.net/gh/lue-trim/lue-trim.github.io/static/font/3rfuFKwVRC0r.woff2") format("woff2"),
-                url("https://cdn.jsdelivr.net/gh/lue-trim/lue-trim.github.io/static/font/3rfuFKwVRC0r.woff") format("woff");
-                font-display: swap;
-            }
-            * {
-                font-family: "阿里巴巴普惠体 2.0 65 Medium";
-            }
             .image_container {
                 align-self: center;
                 width: 800px;
@@ -180,7 +180,7 @@ async def get_channel_id(mid:int):
         raise HTTPException(status_code=404, detail="Channel not found.")
 
 @app.get("/channel/{mid}/clips")
-async def get_channel_id(mid:int):
+async def get_channel_id_clips(mid:int):
     'Channel ID -> 该频道的所有场次'
     res_data = await matsuri.get_channel_id_clips(mid)
     if res_data:
@@ -283,6 +283,27 @@ async def get_search_danmaku(danmaku:str, page:int, _check=Depends(check_search)
     'danmaku -> 全局搜索到的弹幕'
     res_data = await matsuri.get_search_danmaku(danmaku, page)
     return res_data
+
+@app.post("/search_advanced")
+async def get_advanced_search_result(data:SearchRequestData, _check=Depends(check_search)):
+    '搜索条件 -> 搜索结果'
+    if type(data) is str:
+        args = json.loads(data)
+    elif type(data) is SearchRequestData:
+        args = data.dict()
+    else:
+        raise
+
+    try:
+        res_data = await matsuri.get_search_advanced(args)
+    except Exception:
+        msg = traceback.format_exc()
+        return {
+            'success': False,
+            'message': msg,
+        }
+    else:
+        return res_data
 
 # Off Comments, 这个因为mid匹配的范围太广会覆盖其他路由，不能放前面
 @app.get("/{mid}/{date}")
