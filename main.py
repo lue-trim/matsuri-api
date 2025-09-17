@@ -242,6 +242,13 @@ async def check_token(req: Request):
         # 检查一下是不是要除了第一页以外的页数
         # 不然获取第二页的时候就会因为验证码超时报错了..
         page = int(req.query_params.get('page', 0))
+        ## 高级请求的page写在body里，再检查一下
+        if page == 0:
+            try:
+                req_body = json.loads(await req.body())
+                page = req_body.get('page', 0)
+            except:
+                pass
         logger.debug(f"Requiring page {page}")
         if page >= 1:
             return True
