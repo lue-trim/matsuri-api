@@ -2,6 +2,10 @@ from tortoise.models import Model
 from tortoise.fields import SmallIntField, IntField, BigIntField, FloatField, CharField, TextField, DatetimeField, BooleanField, JSONField
 # from urllib.parse import quote, unquote
 
+class Token(Model):
+    token = TextField(primary_key=True)
+    expires = DatetimeField()
+
 class CommentsBaseModel(Model):
     '弹幕基类'
     time = DatetimeField()

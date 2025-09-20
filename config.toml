@@ -2,6 +2,7 @@
 host = "127.0.0.1"
 port = 23562
 recaptcha_secret = "" # 填写recaptcha私钥(没有的话可以自己申请一个，需要和前端src/views/Viewer和DanmakuSearch.vue里的设定值对应)
+token_exp = 1200 # token免验证过期时间
 allow_origin_list = ['luetrim.top', 'lue-trim.github.io'] # 访问/views时限制访问来源用的
 blrec_url = "http://127.0.0.1:2233"
 allow_post_ips = ['127.0.0.1'] # 只有列表里的IP地址可以发送post请求

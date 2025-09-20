@@ -2,6 +2,8 @@
 import datetime, math
 from loguru import logger
 from tortoise.exceptions import DoesNotExist
+from functools import reduce
+
 from db.models import ClipInfo, Comments, OffComments, Subtitles, Channels
 #from ..static import config
 from .parse import get_room_info, date_to_mili_timestamp, highlight_parse, float_to_decimal
@@ -370,7 +372,7 @@ async def __get_final_list(danmakus_info_list, version=1, page=0, total_pages=0)
             'success': True,
             'message': '',
             'pagination': {
-                'totalItems': len(final_list),
+                'totalItems': reduce(lambda x,y:x+len(y['full_comments']), final_list, 0), 
                 'totalPages': total_pages,
                 'currentPage': page,
             },

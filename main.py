@@ -11,11 +11,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 import uvicorn, json, traceback
 from contextlib import asynccontextmanager
-from aiohttp import ClientSession
 
 import db
 from static import config
-from api import matsuri, blrec
+from api import matsuri, blrec, auth
 from db.models import *
 
 import subtitle
@@ -213,71 +212,12 @@ async def get_clip_id_subtitles(id:str, res:Response):
     return res_data
 
 # Viewer
-async def check_origin(req: Request):
-    '检测Origin是否合规'
-    request_origin = req.headers.get('origin', None)
-    allow_origin_list = config.app.get('allow_origin_list', None)
-
-    if not allow_origin_list:
-        # 老版设置
-        safe_origin = config.app['safe_origin']
-        return (safe_origin in request_origin)
-    else:
-        # 新版设置
-        for safe_origin in allow_origin_list:
-            if safe_origin in request_origin:
-                return True
-
-    # 如果都不对
-    raise HTTPException(
-        status_code=403, 
-        detail=f"Request origin {request_origin} is unauthorized."
-    )
-
-async def check_token(req: Request):
-    '检查验证码'
-    recaptcha_token = req.headers.get('token', None)
-    request_ip = ip_address(req.client.host)
-    if recaptcha_token:
-        # 检查一下是不是要除了第一页以外的页数
-        # 不然获取第二页的时候就会因为验证码超时报错了..
-        page = int(req.query_params.get('page', 0))
-        ## 高级请求的page写在body里，再检查一下
-        if page == 0:
-            try:
-                req_body = json.loads(await req.body())
-                page = req_body.get('page', 0)
-            except:
-                pass
-        logger.debug(f"Requiring page {page}")
-        if page >= 1:
-            return True
-        # 跟google验证一下
-        async with ClientSession() as session:
-            kwargs = {
-                'method': "post",
-                'url': "https://www.google.com/recaptcha/api/siteverify", 
-                'params': {
-                    'secret': config.app['recaptcha_secret'],
-                    'response': recaptcha_token,
-                    'remoteip': request_ip
-                },
-            }
-            async with session.request(**kwargs) as res:
-                response = await res.json()
-                logger.debug(f"reCAPTCHA: {response}")
-                if res.ok and response.get('success', False):
-                    return True
-
-    # 如果都不对
-    raise HTTPException(
-        status_code=403,
-        detail=f"Token error."
-    )
-
 async def check_search(req: Request):
     '发起搜索时检查Origin和token'
-    return (await check_origin(req)) and (await check_token(req))
+    # # 测试用
+    # return True
+    # 正式环境
+    return (await auth.check_origin(req)) and (await auth.check_token(req))
 
 @app.get("/viewer/{mid}")
 async def get_viewer_mid(mid:int, page:int, _check=Depends(check_search)):
