@@ -23,6 +23,7 @@ async def refresh_clip(clip_id):
 
     # 结束时间
     last_danmaku = await Comments.filter(clip_id=clip_id).order_by("-time").first()
+    assert last_danmaku is not None
     end_time = last_danmaku.time
     if end_time < old_clip.end_time:
         end_time = old_clip.end_time
@@ -37,6 +38,7 @@ async def refresh_clip(clip_id):
 
     # 开始时间
     first_danmaku = await Comments.filter(clip_id=clip_id).order_by("time").first()
+    assert first_danmaku is not None
     start_time = first_danmaku.time
     if start_time > old_clip.start_time:
         start_time = old_clip.start_time
@@ -180,14 +182,22 @@ async def get_channel_id(mid:int):
         'status': 0, 'data': channel_info
     }
 
-async def get_channel_id_clips(mid:int):
+async def get_channel_id_clips(mid:int, page:int):
     '获取指定频道的所有场次'
     # SELECT id, bilibili_uid, title, EXTRACT(EPOCH FROM start_time)*1000 AS start_time, 
     # EXTRACT(EPOCH FROM end_time)*1000 AS end_time, cover, total_danmu, 
     # viewers AS views FROM clip_info WHERE bilibili_uid= $1 ORDER BY start_time DESC
-    clips = await ClipInfo.filter(bilibili_uid=mid).all().order_by("-start_time")
-    if not clips:
-        return None
+    PS = 30
+    total_items = await ClipInfo.filter(bilibili_uid=mid).count()
+    
+    # 处理分页请求
+    if page == 0:
+        clips = await ClipInfo.filter(bilibili_uid=mid).all().order_by("-start_time")
+    else:
+        clips = await ClipInfo.filter(bilibili_uid=mid).all().order_by("-start_time").offset(PS*(page-1)).limit(PS)
+
+    # if not clips:
+    #     return None
     data = [{
         'id': clip.clip_id, 
         'bilibili_uid': clip.bilibili_uid, 
@@ -199,7 +209,14 @@ async def get_channel_id_clips(mid:int):
         'views': clip.viewers
     } for clip in clips]
     return {
-        'status': 0, 'data': data
+        'status': 0, 
+        'success': True,
+        'data': data, 
+        'pagination': {
+            'totalPages': 1 if page == 0 else math.ceil(total_items/PS),
+            'totalItems': total_items,
+            'currentPage': page,
+        },
     }
 
 
@@ -278,7 +295,7 @@ async def get_search_advanced(data:dict):
         )
 
     return await (__get_final_list(
-        danmakus_list, version=2, page=page, total_pages=total_pages
+        danmakus_list, version=2, page=page, total_pages=total_pages, total_items=total_items
         ))
 
 async def get_search_danmaku(danmaku:str, page:int):
@@ -306,7 +323,41 @@ async def get_viewer_mid(mid:int, page:int):
     )
     return (await __get_final_list(danmakus_info_list))
 
-async def __get_final_list(danmakus_info_list, version=1, page=0, total_pages=0):
+async def get_guard(mid:int, page:int, page_size:int):
+    '获取指定频道的所有场次'
+    # 暂时禁止单次请求5项以上
+    return_dict = {
+        'status': 0, 
+        'success': True,
+        'data': None, 
+        'message': "非法请求",
+        'pagination': {
+            'totalPages': 1,
+            'totalItems': 0,
+            'currentPage': 1,
+        },
+    }
+    if page_size > 5 or page > 1:
+        return return_dict
+
+    # 请求数量
+    args = dict(user_id=mid, gift_name__in=['总督', '提督', '舰长'])
+    total_items = await Comments.filter(**args).count()
+    # total_pages = math.ceil(total_items/page_size)
+    total_pages = 1
+
+    # 请求具体弹幕
+    danmakus_info_list = await Comments.filter(
+        **args
+    ).all().order_by('-time').offset(page_size*(page-1)).limit(page_size).values(
+        'time', 'username', 'user_id', 'superchat_price', 'gift_name', 'gift_price', 
+        'gift_num', 'text', 'clip_id'
+    )
+    return (await __get_final_list(
+        danmakus_info_list, version=2, page=page, total_items=total_items, total_pages=total_pages
+        ))
+
+async def __get_final_list(danmakus_info_list, version=1, page=0, total_pages=0, total_items=0):
     '统一处理返回值'
     # 排序
     danmakus_info_list_sorted = sorted(danmakus_info_list, key=lambda x:-x['time'].timestamp())
@@ -372,7 +423,8 @@ async def __get_final_list(danmakus_info_list, version=1, page=0, total_pages=0)
             'success': True,
             'message': '',
             'pagination': {
-                'totalItems': reduce(lambda x,y:x+len(y['full_comments']), final_list, 0), 
+                # 'totalItems': reduce(lambda x,y:x+len(y['full_comments']), final_list, 0), 
+                'totalItems': total_items,
                 'totalPages': total_pages,
                 'currentPage': page,
             },

@@ -35,6 +35,9 @@ async def check_token(req: Request):
     timedelta = datetime.timedelta(seconds=config.app['token_exp'])
     is_valid = False
 
+    # 删除所有过期token
+    await Token.filter(expires__lt=time_now).delete()
+
     # 获取验证码
     recaptcha_token = req.headers.get('token', None)
     request_ip = ip_address(req.client.host)
@@ -71,9 +74,8 @@ async def check_token(req: Request):
                     if res.ok and response.get('success', False):
                         is_valid = True
         else:
-            # 检查日期
-            if time_now <= token_data.expires:
-                is_valid = True
+            # 检查的时候没被删掉那就是有效的
+            is_valid = True
         
     if is_valid:
         # 如果没问题
@@ -86,7 +88,6 @@ async def check_token(req: Request):
     else:
         # 如果都不对
         logger.debug(f"Invalid token {recaptcha_token}")
-        await Token.filter(token=recaptcha_token).delete()
         raise HTTPException(
             status_code=403,
             detail=f"Token error."

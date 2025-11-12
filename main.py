@@ -181,7 +181,16 @@ async def get_channel_id(mid:int):
 @app.get("/channel/{mid}/clips")
 async def get_channel_id_clips(mid:int):
     'Channel ID -> 该频道的所有场次'
-    res_data = await matsuri.get_channel_id_clips(mid)
+    res_data = await matsuri.get_channel_id_clips(mid, 0)
+    if res_data:
+        return res_data
+    else:
+        raise HTTPException(status_code=404, detail="Channel not found.")
+
+@app.post("/channel/{mid}/clips")
+async def post_channel_id_clips(mid:int, page:int=0):
+    'Channel ID -> 分页查看该频道的场次'
+    res_data = await matsuri.get_channel_id_clips(mid, page)
     if res_data:
         return res_data
     else:
@@ -251,6 +260,12 @@ async def get_advanced_search_result(data:SearchRequestData, _check=Depends(chec
         }
     else:
         return res_data
+
+@app.get("/guard/{mid}")
+async def get_guard_mid(mid:int, page:int, page_size:int=5):
+    'MID -> 对应mid发送的弹幕'
+    res_data = await matsuri.get_guard(mid, page, page_size)
+    return res_data
 
 # Off Comments, 这个因为mid匹配的范围太广会覆盖其他路由，不能放前面
 @app.get("/{mid}/{date}")

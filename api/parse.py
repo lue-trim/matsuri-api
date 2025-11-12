@@ -23,7 +23,8 @@ def date1_to_time(time_in_blrec:str):
 
 def date2_to_time(s):
     '2025-04-02T12:00:24+08:00 -> datetime'
-    return datetime.datetime.strptime(s, r"%Y-%m-%dT%H:%M:%S%z")
+    return datetime.datetime.fromisoformat(s)
+    # return datetime.datetime.strptime(s, r"%Y-%m-%dT%H:%M:%S%z")
 
 def timestamp_to_date(timestamp, ms=True):
     '1743566521395(毫秒) -> 2025-04-02 12:02:01'
